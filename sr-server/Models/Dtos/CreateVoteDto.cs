@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SignalRDemo.Server.Model;
+namespace SignalRDemo.Server.Models.Dtos;
 
 public class CreateVoteDto
 {

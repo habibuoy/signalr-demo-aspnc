@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
 using SignalRDemo.Server;
-using SignalRDemo.Server.Model;
-using SignalRDemo.Server.Response;
+using SignalRDemo.Server.Models;
+using SignalRDemo.Server.Models.Dtos;
+using SignalRDemo.Server.Responses;
 
 var builder = WebApplication.CreateBuilder(args);
 

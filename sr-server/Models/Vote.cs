@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using SignalRDemo.Server.Models.Dtos;
 
-namespace SignalRDemo.Server.Model;
+namespace SignalRDemo.Server.Models;
 
 public class Vote
 {

@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Model;
+namespace SignalRDemo.Server.Models.Dtos;
 
 public class VoteDto
 {

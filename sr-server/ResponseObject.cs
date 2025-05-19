@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Response;
+namespace SignalRDemo.Server.Responses;
 
 public class ResponseObject
 {
