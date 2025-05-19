@@ -70,9 +70,8 @@ app.MapPost("/vote", async ([AsParameters] VoteSubjectDto inputVote,
     if (vote.IsClosed()
         || !vote.CanVote())
     {
-        httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
-        await httpContext.Response.WriteAsJsonAsync(
-            ResponseObject.Create("Vote has been closed or exceeded maximum count"));
+        return Results.Json(ResponseObject.Create("Vote has been closed or exceeded maximum count"),
+            statusCode: StatusCodes.Status403Forbidden);
     }
 
     if (!vote.SubjectVoteCounts.TryGetValue(inputVote.SubjectId, out var count))
