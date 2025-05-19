@@ -25,7 +25,7 @@ public class CreateVoteDto
         catch (JsonException ex)
         {
             httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
-                .LogInformation(ex.Message, "Failed to parse CreateVoteDto:");
+                .LogInformation("Failed to parse CreateVoteDto: {msg}", ex.Message);
             return null;
         }
     }
