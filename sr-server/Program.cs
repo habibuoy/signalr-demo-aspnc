@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server;
 using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
@@ -22,6 +23,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapHub<ChatHub>("/chat");
+app.MapHub<VoteHub>("/watchvote");
 
 var votes = new ConcurrentDictionary<string, Vote>();
 
@@ -40,7 +42,7 @@ app.MapGet("/vote/{id}", (string? id) =>
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
 });
 
-app.MapPost("/vote/create", (CreateVoteDto? inputDto) =>
+app.MapPost("/vote/create", async (CreateVoteDto? inputDto, HttpContext httpContext) =>
 {
     if (inputDto == null
         || !inputDto.IsValid())
@@ -50,6 +52,17 @@ app.MapPost("/vote/create", (CreateVoteDto? inputDto) =>
 
     var vote = inputDto.ToVote();
     votes.TryAdd(vote.Id, vote);
+
+    try
+    {
+        var voteHubContext = httpContext.RequestServices.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
+        await voteHubContext.Clients.All.NotifyVoteCreated(vote.ToVoteCreatedProperties());
+    }
+    catch (InvalidOperationException ex)
+    {
+        httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
+            .LogInformation("Error while hubbing: {msg}", ex.Message);
+    }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
 });
@@ -80,6 +93,18 @@ app.MapPost("/vote", async ([AsParameters] VoteSubjectDto inputVote,
     }
 
     vote.GiveVote(inputVote.SubjectId);
+    
+    try
+    {
+        var voteHubContext = httpContext.RequestServices.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
+        await voteHubContext.Clients.Group($"vote-{vote.Id}").NotifyVoteUpdated(vote.ToVoteUpdatedProperties());
+    }
+    catch (InvalidOperationException ex)
+    {
+        httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
+            .LogInformation("Error while hubbing: {msg}", ex.Message);
+    }
+    
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
 });
 

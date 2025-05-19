@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using SignalRDemo.Server.Models.Dtos;
+using SignalRDemo.Shared;
 
 namespace SignalRDemo.Server.Models;
 
@@ -112,6 +113,26 @@ public static class VoteExtensions
             ExpiredTime = vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value.ToLocalTime() : null,
             MaximumCount = vote.MaximumCount,
             CurrentTotalCount = vote.CurrentTotalCount
+        };
+    }
+
+    public static VoteCreatedProperties ToVoteCreatedProperties(this Vote vote)
+    {
+        return new VoteCreatedProperties()
+        {
+            Id = vote.Id,
+            Title = vote.Title,
+            SubjectCount = vote.Subjects.Count
+        };
+    }
+
+    public static VoteUpdatedProperties ToVoteUpdatedProperties(this Vote vote)
+    {
+        return new VoteUpdatedProperties()
+        {
+            Id = vote.Id,
+            Title = vote.Title,
+            TotalCount = vote.CurrentTotalCount
         };
     }
 }
