@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using SignalRDemo.Client;
 
-const string Endpoint = "https://localhost:7000/chat";
+const string Endpoint = "https://localhost:7000/watchvote";
 
 string? user = string.Empty;
 while (string.IsNullOrEmpty(user))
@@ -11,7 +11,7 @@ while (string.IsNullOrEmpty(user))
     user = Console.ReadLine();
 }
 
-var client = new ChatClient(Endpoint, user);
+var client = new VoteClient(Endpoint, user);
 
 try
 {
