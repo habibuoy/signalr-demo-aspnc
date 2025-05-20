@@ -83,18 +83,6 @@ public class Vote
     }
 }
 
-public class VoteSubject
-{
-    public required int Id { get; set; }
-    public required string Name { get; set; }
-}
-
-public class VoteCount
-{
-    public required int Id { get; set; }
-    public required int Count { get; set; }
-}
-
 public static class VoteExtensions
 {
     public static VoteDto ToDto(this Vote vote)
