@@ -73,7 +73,7 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
 });
 
-app.MapPost("/vote", async ([AsParameters] VoteSubjectDto inputVote,
+app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     HttpContext httpContext, IVoteService voteService) =>
 {
     if (inputVote == null)
