@@ -1,8 +1,6 @@
-using System.Text.Json;
-
 namespace SignalRDemo.Server.Models.Dtos;
 
-public class VoteSubjectDto
+public class GiveVoteDto
 {
     public required string VoteId { get; set; }
     public required int SubjectId { get; set; }
