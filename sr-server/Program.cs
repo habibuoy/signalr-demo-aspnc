@@ -4,6 +4,7 @@ using SignalRDemo.Server;
 using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
+using SignalRDemo.Server.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,6 @@
 using SignalRDemo.Shared;
 
-namespace SignalRDemo.Server;
+namespace SignalRDemo.Server.Interfaces;
 
 public interface IVoteHubClient
 {

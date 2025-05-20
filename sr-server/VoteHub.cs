@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using SignalRDemo.Server.Interfaces;
 
 namespace SignalRDemo.Server;
 
