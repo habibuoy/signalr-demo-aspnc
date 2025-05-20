@@ -5,6 +5,7 @@ using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Interfaces;
+using SignalRDemo.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
+builder.Services.AddTransient<IVoteService, InMemoryVoteService>();
 
 var app = builder.Build();
 
@@ -26,16 +28,17 @@ app.UseHttpsRedirection();
 app.MapHub<ChatHub>("/chat");
 app.MapHub<VoteHub>("/watchvote");
 
-var votes = new ConcurrentDictionary<string, Vote>();
-
-app.MapGet("/vote/{id}", (string? id) =>
+app.MapGet("/vote/{id}", async (string? id,
+    IVoteService voteService) =>
 {
     if (id == null)
     {
         return Results.BadRequest(ResponseObject.BadQuery());
     }
 
-    if (!votes.TryGetValue(id, out var vote))
+    var vote = await voteService.GetVoteByIdAsync(id);
+
+    if (vote == null)
     {
         return Results.NotFound(ResponseObject.NotFound());
     }
@@ -43,7 +46,8 @@ app.MapGet("/vote/{id}", (string? id) =>
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
 });
 
-app.MapPost("/vote/create", async (CreateVoteDto? inputDto, HttpContext httpContext) =>
+app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
+    HttpContext httpContext, IVoteService voteService) =>
 {
     if (inputDto == null
         || !inputDto.IsValid())
@@ -52,7 +56,8 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto, HttpContext httpCont
     }
 
     var vote = inputDto.ToVote();
-    votes.TryAdd(vote.Id, vote);
+
+    await voteService.AddVoteAsync(vote);
 
     try
     {
@@ -69,14 +74,16 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto, HttpContext httpCont
 });
 
 app.MapPost("/vote", async ([AsParameters] VoteSubjectDto inputVote,
-    HttpContext httpContext) =>
+    HttpContext httpContext, IVoteService voteService) =>
 {
     if (inputVote == null)
     {
         return Results.BadRequest(ResponseObject.BadQuery());
     }
 
-    if (!votes.TryGetValue(inputVote.VoteId, out var vote))
+    var vote = await voteService.GetVoteByIdAsync(inputVote.VoteId);
+
+    if (vote == null)
     {
         return Results.NotFound(ResponseObject.NotFound());
     }
@@ -94,7 +101,8 @@ app.MapPost("/vote", async ([AsParameters] VoteSubjectDto inputVote,
     }
 
     vote.GiveVote(inputVote.SubjectId);
-    
+    await voteService.UpdateVoteAsync(inputVote.VoteId, vote);
+
     try
     {
         var voteHubContext = httpContext.RequestServices.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();

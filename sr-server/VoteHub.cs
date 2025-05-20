@@ -5,6 +5,13 @@ namespace SignalRDemo.Server;
 
 public class VoteHub : Hub<IVoteHubClient>
 {
+    private readonly ILogger<VoteHub> logger;
+
+    public VoteHub(ILogger<VoteHub> logger)
+    {
+        this.logger = logger;
+    }
+
     public async Task<bool> SubscribeVote(string user, string voteId)
     {
         try
@@ -30,4 +37,20 @@ public class VoteHub : Hub<IVoteHubClient>
             return false;
         }
     }
+
+    // public override Task OnConnectedAsync()
+    // {
+    //     if (Context.GetHttpContext() is HttpContext httpContext)
+    //     {
+    //         var connectionId = Context.ConnectionId;
+    //         logger.LogInformation("Connection {conId} has http context", connectionId);
+    //         if (httpContext.Request.Query["autoSubs"] is StringValues autoSub
+    //             && autoSub != StringValues.Empty)
+    //         {
+    //             logger.LogInformation("Connection {conId} has auto sub query", connectionId);
+    //             Groups.AddToGroupAsync(connectionId, "AutoSubscribers");
+    //         }
+    //     }
+    //     return base.OnConnectedAsync();
+    // }
 }

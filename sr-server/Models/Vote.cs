@@ -16,7 +16,7 @@ public class Vote
 
     public Dictionary<int, int> SubjectVoteCounts { get; set; } = new();
 
-    public object voteLock = new();
+    private object voteLock = new();
 
     [SetsRequiredMembers]
     protected Vote()
