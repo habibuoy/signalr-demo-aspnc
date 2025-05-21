@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server;
 using SignalRDemo.Server.Models;
@@ -6,6 +5,9 @@ using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Services;
+using SignalRDemo.Server.Datas;
+using Microsoft.AspNetCore.Mvc;
+using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +15,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
-builder.Services.AddTransient<IVoteService, InMemoryVoteService>();
+
+var connectionString = builder.Configuration.GetConnectionString("MainDb");
+
+builder.Services.AddSqlite<ApplicationDbContext>(connectionString,
+    optionsAction: options =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            options.EnableSensitiveDataLogging();
+        }
+    });
+builder.Services.AddTransient<IVoteService, DbVoteService>();
 
 var app = builder.Build();
 
@@ -29,7 +42,7 @@ app.MapHub<ChatHub>("/chat");
 app.MapHub<VoteHub>("/watchvote");
 
 app.MapGet("/vote/{id}", async (string? id,
-    IVoteService voteService) =>
+    [FromServices] IVoteService voteService) =>
 {
     if (id == null)
     {
@@ -47,7 +60,7 @@ app.MapGet("/vote/{id}", async (string? id,
 });
 
 app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
-    HttpContext httpContext, IVoteService voteService) =>
+    HttpContext httpContext, [FromServices] IVoteService voteService) =>
 {
     if (inputDto == null
         || !inputDto.IsValid())
@@ -57,7 +70,11 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
 
     var vote = inputDto.ToVote();
 
-    await voteService.AddVoteAsync(vote);
+    var result = await voteService.AddVoteAsync(vote);
+    if (!result)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
 
     try
     {
@@ -74,7 +91,7 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
 });
 
 app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
-    HttpContext httpContext, IVoteService voteService) =>
+    HttpContext httpContext, [FromServices] IVoteService voteService) =>
 {
     if (inputVote == null)
     {
@@ -95,18 +112,34 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
             statusCode: StatusCodes.Status403Forbidden);
     }
 
-    if (!vote.SubjectVoteCounts.TryGetValue(inputVote.SubjectId, out var count))
+    if (vote.Subjects.FirstOrDefault(s => s.Id == inputVote.SubjectId) is not VoteSubject subject)
     {
         return Results.NotFound(ResponseObject.NotFound());
     }
 
-    vote.GiveVote(inputVote.SubjectId);
-    await voteService.UpdateVoteAsync(inputVote.VoteId, vote);
+    var success = false;
+
+    // Can put a retry logic here in case of concurrency exception
+    try
+    {
+        vote.GiveVote(inputVote.SubjectId);
+        success = await voteService.UpdateVoteAsync(inputVote.VoteId, vote);
+    }
+    catch (DBConcurrencyException)
+    {
+        success = false;
+    }
+
+    if (!success)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
 
     try
     {
         var voteHubContext = httpContext.RequestServices.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
-        await voteHubContext.Clients.Group($"vote-{vote.Id}").NotifyVoteUpdated(vote.ToVoteUpdatedProperties());
+        // await voteHubContext.Clients.Group($"vote-{vote.Id}").NotifyVoteUpdated(vote.ToVoteUpdatedProperties());
+        await voteHubContext.Clients.All.NotifyVoteUpdated(vote.ToVoteUpdatedProperties());
     }
     catch (InvalidOperationException ex)
     {
