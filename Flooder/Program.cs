@@ -29,8 +29,12 @@ Console.WriteLine($"Vote Id: {voteId}");
 
 var floodCountPrompter = new InputPrompter("Enter count: ",
     "============\nPlease enter flood count in number\r",
-    static (input) => int.TryParse(input, out _));
+    IsNumber);
 var fc = floodCountPrompter.Prompt();
+
+var maxRetryCountPrompter = new InputPrompter("Max retry count: ", inputEvaluator: IsNumber);
+
+int maxRetryCount = int.Parse(maxRetryCountPrompter.Prompt());
 
 var floodTask = Task.Run(async () =>
 {
@@ -48,7 +52,7 @@ var floodTask = Task.Run(async () =>
     await Task.Delay(1000);
     floodSw.Start();
 
-    var semaphore = new SemaphoreSlim(100, 500);
+    using var semaphore = new SemaphoreSlim(100, 500);
     for (int i = 0; i < floodCount; i++)
     {
         var index = i;
@@ -57,7 +61,7 @@ var floodTask = Task.Run(async () =>
         {
             try
             {
-                await FloodTaskAsync(index, voteId, httpClientFactory);
+                await FloodTaskAsync(index, voteId, httpClientFactory, maxRetryCount);
             }
             finally
             {
@@ -68,14 +72,14 @@ var floodTask = Task.Run(async () =>
 
     await Task.WhenAll(voteTasks);
     floodSw.Stop();
-
+    
     Console.WriteLine($"All {floodCount} flood has been ran in {floodSw.Elapsed:g}");
 });
 
 await floodTask;
 
 static async Task FloodTaskAsync(int index, string voteId,
-    IHttpClientFactory httpClientFactory = null)
+    IHttpClientFactory? httpClientFactory = null, int voteMaxRetry = 1)
 {
     var httpClient = httpClientFactory != null ? httpClientFactory.CreateClient() : new HttpClient();
 
@@ -118,16 +122,39 @@ static async Task FloodTaskAsync(int index, string voteId,
 
         var subjectId = id.GetValue<int>();
 
-        var voteSubjectResponse = await httpClient.PostAsync($"https://localhost:7000/vote?voteId={voteId}&subjectId={subjectId}", null);
-        var voteSubjectBody = await JsonNode.ParseAsync(voteSubjectResponse.Content.ReadAsStream());
+        bool isSuccessVote = false;
+        int retryRemaining = voteMaxRetry + 1;
 
-        if (!voteSubjectResponse.IsSuccessStatusCode)
+        HttpResponseMessage? voteSubjectResponse = null;
+        JsonNode? voteSubjectBody = null;
+
+        while (!isSuccessVote && retryRemaining > 0)
         {
-            Console.WriteLine($"Flood task {index} failed when posting subject vote");
+            voteSubjectResponse = await httpClient.PostAsync($"https://localhost:7000/vote?voteId={voteId}&subjectId={subjectId}", null);
+            voteSubjectBody = await JsonNode.ParseAsync(voteSubjectResponse.Content.ReadAsStream());
+
+            if (!voteSubjectResponse.IsSuccessStatusCode)
+            {
+                retryRemaining--;
+            }
+            else
+            {
+                isSuccessVote = true;
+            }
+
+            await Task.Delay(Random.Shared.Next(10, 100));
+        }
+
+        if (!isSuccessVote)
+        {
+            var errorMessage = string.Empty;
+
             if (voteSubjectBody != null && voteSubjectBody["message"] is JsonNode message)
             {
-                Console.WriteLine($"Message: {message.GetValue<string>()}");
+                errorMessage = $"Message: {message.GetValue<string>()}";
             }
+
+            Console.WriteLine($"Flood task {index} failed when posting subject vote after retrying for {voteMaxRetry} time(s)\n{errorMessage}");
             return;
         }
 
@@ -157,6 +184,11 @@ static async Task FloodTaskAsync(int index, string voteId,
     {
         httpClient.Dispose();
     }
+}
+
+static bool IsNumber(string input)
+{
+    return int.TryParse(input, out _);
 }
 
 static async Task<string?> PostVoteAsync(int? voteDuration = 60)
