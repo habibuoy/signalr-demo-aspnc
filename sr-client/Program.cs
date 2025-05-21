@@ -1,15 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using SignalRDemo.Client;
+using SignalRDemo.Shared;
 
 const string Endpoint = "https://localhost:7000/watchvote";
 
-string? user = string.Empty;
-while (string.IsNullOrEmpty(user))
-{
-    Console.Write("Enter user: ");
-    user = Console.ReadLine();
-}
+var userPrompter = new InputPrompter("Enter user: ", acceptableInputs: null);
+string? user = userPrompter.Prompt();
 
 var client = new VoteClient(Endpoint, user);
 
@@ -17,7 +14,7 @@ try
 {
     await client.InitializeAsync();
 }
-catch (HubException)
+catch (Exception)
 {
     Console.WriteLine("Failed to initialize chat client, quitting app");
     return;

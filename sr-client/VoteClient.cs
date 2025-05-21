@@ -47,15 +47,20 @@ public class VoteClient
 
         connection.Closed += OnConnectionClosed;
         Console.WriteLine("Connecting to the server");
-        
+
         try
         {
             await connection.StartAsync();
             Console.WriteLine("Connected to the server");
         }
+        catch (HttpRequestException httpExc)
+        {
+            Console.WriteLine($"Http Error happened while connecting to the server: {httpExc.Message}");
+            throw;
+        }
         catch (HubException ex)
         {
-            Console.WriteLine($"Error happened while connecting to the server: {ex.Message}");
+            Console.WriteLine($"Hub Error happened while connecting to the server: {ex.Message}");
             throw;
         }
     }
