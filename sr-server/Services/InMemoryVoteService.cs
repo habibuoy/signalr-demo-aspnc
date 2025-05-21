@@ -39,7 +39,7 @@ public class InMemoryVoteService : IVoteService
 
         existing.Subjects = vote.Subjects;
         existing.Title = vote.Title;
-        existing.SubjectVoteCounts = vote.SubjectVoteCounts;
+        existing.Subjects = vote.Subjects;
         return Task.FromResult(true);
     }
 

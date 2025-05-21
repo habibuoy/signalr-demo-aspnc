@@ -2,10 +2,13 @@ namespace SignalRDemo.Server.Models;
 
 public class VoteCount
 {
-    public required int Id { get; set; }
-    public required string VoteId { get; set; }
-    public required int Count { get; set; }
+    public int Id { get; set; }
+    public int SubjectId { get; set; }
+    public int Count { get; set; }
+
+    // for concurrency
+    public Guid Version { get; set; }
 
     // navigational
-    public Vote? Vote { get; set; }
+    public VoteSubject? VoteSubject { get; set; }
 }

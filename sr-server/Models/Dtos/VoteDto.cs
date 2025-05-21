@@ -4,8 +4,7 @@ public class VoteDto
 {
     public required string Id { get; set; }
     public required string Title { get; set; } = string.Empty;
-    public required IEnumerable<VoteSubject> Subjects { get; set; } = [];
-    public required IEnumerable<VoteCount> VoteCount { get; set; } = [];
+    public required IEnumerable<VoteSubjectDto> Subjects { get; set; } = [];
     public DateTime CreatedTime { get; set; }
     public DateTime? ExpiredTime { get; set; }
     public int? MaximumCount { get; set; }

@@ -14,8 +14,6 @@ public class Vote
     public int? MaximumCount { get; set; }
     public int CurrentTotalCount { get; set; }
 
-    public Dictionary<int, int> SubjectVoteCounts { get; set; } = new();
-
     private object voteLock = new();
 
     [SetsRequiredMembers]
@@ -32,10 +30,19 @@ public class Vote
         Title = title;
         for (int i = 0; i < subjects.Length; i++)
         {
+            var subject = subjects[i];
+
             Subjects.Add(new VoteSubject()
             {
                 Id = i,
-                Name = subjects[i]
+                Name = subject,
+                VoteId = Id,
+                VoteCount = new VoteCount()
+                {
+                    Id = i,
+                    SubjectId = i,
+                    Count = 0
+                }
             });
         }
     }
@@ -49,10 +56,6 @@ public class Vote
         MaximumCount = maximumCount;
 
         CreatedTime = DateTime.UtcNow;
-        foreach (var subject in Subjects)
-        {
-            SubjectVoteCounts.Add(subject.Id, 0);
-        }
     }
 
     public bool IsClosed()
@@ -74,10 +77,11 @@ public class Vote
     {
         lock (voteLock)
         {
-            if (SubjectVoteCounts.TryGetValue(subjectId, out int value))
+            if (Subjects.Find(v => v.Id == subjectId) is VoteSubject voteSubject)
             {
-                SubjectVoteCounts[subjectId] = ++value;
+                voteSubject.VoteCount.Count++;
                 CurrentTotalCount++;
+                voteSubject.VoteCount.Version = Guid.NewGuid();
             }
         }
     }
@@ -87,20 +91,35 @@ public static class VoteExtensions
 {
     public static VoteDto ToDto(this Vote vote)
     {
+        var subjects = new List<VoteSubjectDto>();
+        int totalCount = 0;
+
+        foreach (var subject in vote.Subjects)
+        {
+            int count = subject.VoteCount.Count;
+
+            subjects.Add(new()
+            {
+                Id = subject.Id,
+                Name = subject.Name,
+                VoteCount = new()
+                {
+                    Count = count
+                }
+            });
+
+            totalCount += count;
+        }
+        
         return new VoteDto()
         {
             Id = vote.Id,
             Title = vote.Title,
-            Subjects = vote.Subjects,
-            VoteCount = vote.SubjectVoteCounts.Select(s => new VoteCount()
-            {
-                Id = s.Key,
-                Count = s.Value
-            }),
+            Subjects = subjects,
             CreatedTime = vote.CreatedTime.ToLocalTime(),
             ExpiredTime = vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value.ToLocalTime() : null,
             MaximumCount = vote.MaximumCount,
-            CurrentTotalCount = vote.CurrentTotalCount
+            CurrentTotalCount = totalCount
         };
     }
 
