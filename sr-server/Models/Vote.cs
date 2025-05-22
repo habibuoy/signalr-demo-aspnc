@@ -12,7 +12,6 @@ public class Vote
     public DateTime CreatedTime { get; set; }
     public DateTime? ExpiredTime { get; set; }
     public int? MaximumCount { get; set; }
-    public int CurrentTotalCount { get; set; }
 
     private object voteLock = new();
 
@@ -37,12 +36,6 @@ public class Vote
                 Id = i,
                 Name = subject,
                 VoteId = Id,
-                VoteCount = new VoteCount()
-                {
-                    Id = i,
-                    SubjectId = i,
-                    Count = 0
-                }
             });
         }
     }
@@ -67,21 +60,30 @@ public class Vote
     public bool CanVote()
     {
         lock (voteLock)
-        {    
+        {
+            var currentTotal = Subjects.Aggregate(0, (acc, s) =>
+            {
+                acc += s.Voters.Count;
+                return acc;
+            });
             return MaximumCount == null
-                || CurrentTotalCount < MaximumCount;
+                || currentTotal < MaximumCount;
         }
     }
 
-    public void GiveVote(int subjectId)
+    public void GiveVote(int subjectId, string? userId)
     {
         lock (voteLock)
         {
             if (Subjects.Find(v => v.Id == subjectId) is VoteSubject voteSubject)
             {
-                voteSubject.VoteCount.Count++;
-                CurrentTotalCount++;
-                voteSubject.VoteCount.Version = Guid.NewGuid();
+                var voteInput = new VoteSubjectInput()
+                {
+                    VoterId = userId,
+                    InputTime = DateTime.Now
+                };
+
+                voteSubject.Voters.Add(voteInput);
             }
         }
     }
@@ -96,16 +98,13 @@ public static class VoteExtensions
 
         foreach (var subject in vote.Subjects)
         {
-            int count = subject.VoteCount.Count;
+            int count = subject.Voters.Count;
 
             subjects.Add(new()
             {
                 Id = subject.Id,
                 Name = subject.Name,
-                VoteCount = new()
-                {
-                    Count = count
-                }
+                CurrentCount = count
             });
 
             totalCount += count;
@@ -139,7 +138,11 @@ public static class VoteExtensions
         {
             Id = vote.Id,
             Title = vote.Title,
-            TotalCount = vote.CurrentTotalCount
+            TotalCount = vote.Subjects.Aggregate(0, (acc, c) =>
+            {
+                acc += c.Voters.Count;
+                return acc;
+            })
         };
     }
 }

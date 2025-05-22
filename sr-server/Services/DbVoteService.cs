@@ -25,8 +25,6 @@ public class DbVoteService : IVoteService
             foreach (var subject in vote.Subjects)
             {
                 subject.Id = 0;
-                subject.VoteCount.Id = 0;
-                subject.VoteCount.SubjectId = 0;
             }
 
             dbContext.Add(vote);
@@ -62,8 +60,7 @@ public class DbVoteService : IVoteService
         // because we need the Queryable.Include and .ThenInclude.
         // FindAsync does not include the relational properties.
         var vote = await dbContext.Votes
-            .Include(v => v.Subjects)
-            .ThenInclude(s => s.VoteCount)
+            .Include(v => v.Subjects).ThenInclude(s => s.Voters)
             .FirstOrDefaultAsync(v => v.Id == id);
         return vote;
     }
@@ -107,7 +104,6 @@ public class DbVoteService : IVoteService
             {
                 existing.Subjects = vote.Subjects;
                 existing.Title = vote.Title;
-                existing.Subjects = vote.Subjects;
                 await dbContext.SaveChangesAsync();
             }
             return true;
