@@ -14,28 +14,58 @@ var serviceProvider = services.BuildServiceProvider();
 const float DelayBeforePostingVote = 1f; // in s
 const float DelayBeforeFlood = 3f; // in s
 
+var floodTypePrompter = new InputPrompter("Choose (1/2):",
+    "+++++++++++\n" +
+    "1. New flood (Post a new flood and then target that)\n" +
+    "2. Targeted flood (You input the vote id)\n" +
+    "+++++++++++",
+    ["1", "2"]);
+
+var voteIdPrompter = new InputPrompter(
+    "Input Vote Id: ",
+    "Target Vote Id (Leave empty to let the app gets it)",
+    inputEvaluator: null);
+
+var floodCountPrompter = new InputPrompter("Enter count: ",
+    "============\nPlease enter flood count in number\r",
+    IsNumber);
+
+var maxRetryCountPrompter = new InputPrompter("Max retry count: ", inputEvaluator: IsNumber);
+
+var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+
 while (true)
 {
-    Console.WriteLine($"Waiting {DelayBeforePostingVote} seconds before posting a vote");
+    string? voteId = voteIdPrompter.Prompt();
 
-    await Task.Delay((int)(DelayBeforePostingVote * 1000));
-
-    var voteId = await PostVoteAsync(null);
-
-    if (voteId == null)
+    if (string.IsNullOrEmpty(voteId))
     {
-        Console.WriteLine("VoteId null, cancelling flood");
-        return;
+        Console.WriteLine($"Waiting {DelayBeforePostingVote} seconds before posting a vote");
+
+        await Task.Delay((int)(DelayBeforePostingVote * 1000));
+
+        voteId = await PostVoteAsync(null);
+    }
+    else
+    {
+        var httpClient = httpClientFactory.CreateClient();
+        var result = await httpClient.GetAsync($"https://localhost:7000/vote/{voteId}");
+        if (!result.IsSuccessStatusCode)
+        {
+            Console.WriteLine("There is no vote with provided Vote id");
+            voteId = null;
+        }
+    }
+
+    if (string.IsNullOrEmpty(voteId))
+    {
+        Console.WriteLine("Vote Id is not valid, restarting app");
+        continue;
     }
 
     Console.WriteLine($"Vote Id: {voteId}");
 
-    var floodCountPrompter = new InputPrompter("Enter count: ",
-        "============\nPlease enter flood count in number\r",
-        IsNumber);
     var fc = floodCountPrompter.Prompt();
-
-    var maxRetryCountPrompter = new InputPrompter("Max retry count: ", inputEvaluator: IsNumber);
 
     int maxRetryCount = int.Parse(maxRetryCountPrompter.Prompt());
 
@@ -43,7 +73,6 @@ while (true)
     {
         Console.WriteLine($"Waiting {DelayBeforeFlood} seconds before flooding");
 
-        var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
         await Task.Delay((int)(DelayBeforeFlood * 1000));
 
         Console.WriteLine("Beginning flooding");
@@ -76,12 +105,15 @@ while (true)
         await Task.WhenAll(voteTasks);
         floodSw.Stop();
 
-        Console.WriteLine($"All {floodCount} flood has been ran in {floodSw.Elapsed:g} on Vote Id {voteId}");
-        Console.WriteLine("===============================================================================");
+        Console.WriteLine($"All {floodCount} flood requests has been done in {floodSw.Elapsed:g} on Vote Id {voteId}");
+        Console.WriteLine("=========================================================================================");
     });
 
     await floodTask;
     await Task.Delay(1000);
+
+    Console.WriteLine("Press any key to begin again");
+    Console.ReadKey();
 }
 
 static async Task FloodTaskAsync(int index, string voteId,
