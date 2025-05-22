@@ -13,70 +13,76 @@ var serviceProvider = services.BuildServiceProvider();
 
 const float DelayBeforePostingVote = 1f; // in s
 const float DelayBeforeFlood = 3f; // in s
-Console.WriteLine($"Waiting {DelayBeforePostingVote} seconds before posting a vote");
 
-await Task.Delay((int) (DelayBeforePostingVote * 1000));
-
-var voteId = await PostVoteAsync(null);
-
-if (voteId == null)
+while (true)
 {
-    Console.WriteLine("VoteId null, cancelling flood");
-    return;
-}
+    Console.WriteLine($"Waiting {DelayBeforePostingVote} seconds before posting a vote");
 
-Console.WriteLine($"Vote Id: {voteId}");
+    await Task.Delay((int)(DelayBeforePostingVote * 1000));
 
-var floodCountPrompter = new InputPrompter("Enter count: ",
-    "============\nPlease enter flood count in number\r",
-    IsNumber);
-var fc = floodCountPrompter.Prompt();
+    var voteId = await PostVoteAsync(null);
 
-var maxRetryCountPrompter = new InputPrompter("Max retry count: ", inputEvaluator: IsNumber);
-
-int maxRetryCount = int.Parse(maxRetryCountPrompter.Prompt());
-
-var floodTask = Task.Run(async () =>
-{
-    Console.WriteLine($"Waiting {DelayBeforeFlood} seconds before flooding");
-
-    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
-    await Task.Delay((int) (DelayBeforeFlood * 1000));
-
-    Console.WriteLine("Beginning flooding");
-    int floodCount = int.Parse(fc);
-    var voteTasks = new Task[floodCount];
-
-    Console.WriteLine("Using async flood");
-    var floodSw = new Stopwatch();
-    await Task.Delay(1000);
-    floodSw.Start();
-
-    using var semaphore = new SemaphoreSlim(100, 500);
-    for (int i = 0; i < floodCount; i++)
+    if (voteId == null)
     {
-        var index = i;
-        await semaphore.WaitAsync();
-        voteTasks[i] = Task.Run(async () =>
-        {
-            try
-            {
-                await FloodTaskAsync(index, voteId, httpClientFactory, maxRetryCount);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
+        Console.WriteLine("VoteId null, cancelling flood");
+        return;
     }
 
-    await Task.WhenAll(voteTasks);
-    floodSw.Stop();
-    
-    Console.WriteLine($"All {floodCount} flood has been ran in {floodSw.Elapsed:g}");
-});
+    Console.WriteLine($"Vote Id: {voteId}");
 
-await floodTask;
+    var floodCountPrompter = new InputPrompter("Enter count: ",
+        "============\nPlease enter flood count in number\r",
+        IsNumber);
+    var fc = floodCountPrompter.Prompt();
+
+    var maxRetryCountPrompter = new InputPrompter("Max retry count: ", inputEvaluator: IsNumber);
+
+    int maxRetryCount = int.Parse(maxRetryCountPrompter.Prompt());
+
+    var floodTask = Task.Run(async () =>
+    {
+        Console.WriteLine($"Waiting {DelayBeforeFlood} seconds before flooding");
+
+        var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+        await Task.Delay((int)(DelayBeforeFlood * 1000));
+
+        Console.WriteLine("Beginning flooding");
+        int floodCount = int.Parse(fc);
+        var voteTasks = new Task[floodCount];
+
+        Console.WriteLine("Using async flood");
+        var floodSw = new Stopwatch();
+        await Task.Delay(1000);
+        floodSw.Start();
+
+        using var semaphore = new SemaphoreSlim(100, 500);
+        for (int i = 0; i < floodCount; i++)
+        {
+            var index = i;
+            await semaphore.WaitAsync();
+            voteTasks[i] = Task.Run(async () =>
+            {
+                try
+                {
+                    await FloodTaskAsync(index, voteId, httpClientFactory, maxRetryCount);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+        }
+
+        await Task.WhenAll(voteTasks);
+        floodSw.Stop();
+
+        Console.WriteLine($"All {floodCount} flood has been ran in {floodSw.Elapsed:g} on Vote Id {voteId}");
+        Console.WriteLine("===============================================================================");
+    });
+
+    await floodTask;
+    await Task.Delay(1000);
+}
 
 static async Task FloodTaskAsync(int index, string voteId,
     IHttpClientFactory? httpClientFactory = null, int voteMaxRetry = 1)
