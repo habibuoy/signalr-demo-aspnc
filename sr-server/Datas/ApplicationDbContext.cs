@@ -10,7 +10,6 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Vote> Votes { get; set; }
     public DbSet<VoteSubject> VoteSubjects { get; set; }
-    public DbSet<VoteCount> VoteCounts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,15 +21,11 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(s => s.VoteId);
 
         modelBuilder.Entity<VoteSubject>()
-            .HasOne(v => v.VoteCount)
-            .WithOne(c => c.VoteSubject)
-            .HasForeignKey<VoteCount>(c => c.SubjectId);
-
-        modelBuilder.Entity<VoteCount>()
-            .Property(v => v.Version)
-            .IsConcurrencyToken();
+            .HasMany(v => v.Voters)
+            .WithOne(i => i.VoteSubject)
+            .HasForeignKey(i => i.SubjectId);
 
         modelBuilder.Entity<VoteSubject>().ToTable("VoteSubjects");
-        modelBuilder.Entity<VoteCount>().ToTable("VoteCounts");
+        modelBuilder.Entity<VoteSubjectInput>().ToTable("VoteInputs");
     }
 }

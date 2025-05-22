@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SignalRDemo.Server.Datas;
 
@@ -10,9 +11,11 @@ using SignalRDemo.Server.Datas;
 namespace sr_server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250522065941_AddVoteSubjectInputsTable")]
+    partial class AddVoteSubjectInputsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.5");
@@ -24,6 +27,9 @@ namespace sr_server.Migrations
 
                     b.Property<DateTime>("CreatedTime")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrentTotalCount")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("ExpiredTime")
                         .HasColumnType("TEXT");
@@ -38,6 +44,30 @@ namespace sr_server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Votes");
+                });
+
+            modelBuilder.Entity("SignalRDemo.Server.Models.VoteCount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId")
+                        .IsUnique();
+
+                    b.ToTable("VoteCounts", (string)null);
                 });
 
             modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubject", b =>
@@ -83,6 +113,17 @@ namespace sr_server.Migrations
                     b.ToTable("VoteInputs", (string)null);
                 });
 
+            modelBuilder.Entity("SignalRDemo.Server.Models.VoteCount", b =>
+                {
+                    b.HasOne("SignalRDemo.Server.Models.VoteSubject", "VoteSubject")
+                        .WithOne("VoteCount")
+                        .HasForeignKey("SignalRDemo.Server.Models.VoteCount", "SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VoteSubject");
+                });
+
             modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubject", b =>
                 {
                     b.HasOne("SignalRDemo.Server.Models.Vote", "Vote")
@@ -112,6 +153,9 @@ namespace sr_server.Migrations
 
             modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubject", b =>
                 {
+                    b.Navigation("VoteCount")
+                        .IsRequired();
+
                     b.Navigation("Voters");
                 });
 #pragma warning restore 612, 618
