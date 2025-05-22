@@ -137,11 +137,11 @@ public class DbVoteService : IVoteService
                             entry.OriginalValues.SetValues(databaseValues!);
                         }
                     }
-                    break;
+                    throw;
                 case DbUpdateException:
                     logger.LogInformation("Db error happened while trying to update vote {id}: {msg}",
                         voteId, ex.Message);
-                    throw;
+                    break;
                 case OperationCanceledException:
                     logger.LogInformation("Task cancelled while trying to add remove {id}: {msg}",
                         voteId, ex.Message);

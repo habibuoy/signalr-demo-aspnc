@@ -7,7 +7,7 @@ using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Services;
 using SignalRDemo.Server.Datas;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -120,14 +120,29 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     var success = false;
 
     // Can put a retry logic here in case of concurrency exception
-    try
+    int remainingRetry = 3;
+
+    while (!success && remainingRetry > 0)
     {
-        vote.GiveVote(inputVote.SubjectId);
-        success = await voteService.UpdateVoteAsync(inputVote.VoteId, vote);
-    }
-    catch (DBConcurrencyException)
-    {
-        success = false;
+        try
+        {
+            vote.GiveVote(inputVote.SubjectId);
+            var result = await voteService.UpdateVoteAsync(inputVote.VoteId, vote);
+            if (!result)
+            {
+                remainingRetry--;
+            }
+            else
+            {
+                success = true;
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            remainingRetry--;
+        }
+
+        await Task.Delay(Random.Shared.Next(10, 50));
     }
 
     if (!success)
