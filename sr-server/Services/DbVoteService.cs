@@ -65,7 +65,6 @@ public class DbVoteService : IVoteService
             .Include(v => v.Subjects)
             .ThenInclude(s => s.VoteCount)
             .FirstOrDefaultAsync(v => v.Id == id);
-        logger.LogInformation("subjects count: {c}", vote!.Subjects.Count);
         return vote;
     }
 
@@ -145,6 +144,66 @@ public class DbVoteService : IVoteService
                 case OperationCanceledException:
                     logger.LogInformation("Task cancelled while trying to add remove {id}: {msg}",
                         voteId, ex.Message);
+                    break;
+            }
+
+            return false;
+        }
+    }
+
+    public async Task<bool> GiveVoteAsync(string subjectId, string? userId)
+    {
+        try
+        {
+            var subject = await dbContext.VoteSubjects
+                .Include(vs => vs.Vote)
+                .FirstOrDefaultAsync(s => s.Id == int.Parse(subjectId));
+            if (subject != null)
+            {
+                subject.Voters.Add(new VoteSubjectInput()
+                {
+                    Id = 0,
+                    VoterId = userId,
+                    InputTime = DateTime.Now
+                });
+                await dbContext.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            switch (ex)
+            {
+                case DbUpdateConcurrencyException:
+                    logger.LogInformation("Db concurrency error happened while updating vote subject {id}: {msg}",
+                        subjectId, ex.Message);
+                    var conEx = ex as DbUpdateConcurrencyException;
+                    foreach (var entry in conEx!.Entries)
+                    {
+                        if (entry.Entity is Vote)
+                        {
+                            var proposedValues = entry.CurrentValues;
+                            var databaseValues = await entry.GetDatabaseValuesAsync();
+                            foreach (var property in proposedValues.Properties)
+                            {
+                                var databaseValue = databaseValues![property];
+                                // revert value to database value
+                                proposedValues[property] = databaseValue;
+                            }
+
+                            entry.OriginalValues.SetValues(databaseValues!);
+                        }
+                    }
+                    throw;
+                case DbUpdateException:
+                    logger.LogInformation("Db error happened while updating vote subject {id}: {msg}",
+                        subjectId, ex.Message);
+                    break;
+                case OperationCanceledException:
+                    logger.LogInformation("Task cancelled while updating vote subject {id}: {msg}",
+                        subjectId, ex.Message);
                     break;
             }
 

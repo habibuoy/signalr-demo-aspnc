@@ -126,8 +126,7 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     {
         try
         {
-            vote.GiveVote(inputVote.SubjectId);
-            var result = await voteService.UpdateVoteAsync(inputVote.VoteId, vote);
+            var result = await voteService.GiveVoteAsync(inputVote.SubjectId.ToString(), inputVote.UserId);
             if (!result)
             {
                 remainingRetry--;

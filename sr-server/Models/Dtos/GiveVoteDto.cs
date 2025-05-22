@@ -4,6 +4,7 @@ public class GiveVoteDto
 {
     public required string VoteId { get; set; }
     public required int SubjectId { get; set; }
+    public string? UserId { get; set; }
 
     // public static bool TryParse(HttpContext httpContext)
     // {

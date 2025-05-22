@@ -52,4 +52,17 @@ public class InMemoryVoteService : IVoteService
 
         return Task.FromResult(true);
     }
+
+    public Task<bool> GiveVoteAsync(string subjectId, string? userId)
+    {
+        int sid = int.Parse(subjectId);
+        var vote = votes.Values.FirstOrDefault(v => v.Subjects.Any(s => s.Id == sid));
+        if (vote == null)
+        {
+            return Task.FromResult(false);
+        }
+
+        vote.GiveVote(sid, userId);
+        return Task.FromResult(true);
+    }
 }

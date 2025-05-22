@@ -14,4 +14,10 @@ public interface IVoteService
     /// <returns>A boolean to indicate whether the process is success or not</returns>
     /// <exception cref="DbUpdateConcurrencyException"></exception>
     Task<bool> UpdateVoteAsync(string voteId, Vote vote);
+    /// <summary>
+    /// Give vote asynchronously
+    /// </summary>
+    /// <returns>A boolean to indicate whether the process is success or not</returns>
+    /// <exception cref="DbUpdateConcurrencyException"></exception>
+    Task<bool> GiveVoteAsync(string subjectId, string? userId);
 }
