@@ -21,6 +21,11 @@ public class ApplicationDbContext : DbContext
             .WithOne(s => s.Vote)
             .HasForeignKey(s => s.VoteId);
 
+        modelBuilder.Entity<Vote>()
+            .HasOne(v => v.User)
+            .WithMany()
+            .HasForeignKey(v => v.CreatorId);
+
         modelBuilder.Entity<VoteSubject>()
             .HasMany(v => v.Voters)
             .WithOne(i => i.VoteSubject)

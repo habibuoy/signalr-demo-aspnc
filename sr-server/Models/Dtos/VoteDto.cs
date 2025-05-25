@@ -9,4 +9,5 @@ public class VoteDto
     public DateTime? ExpiredTime { get; set; }
     public int? MaximumCount { get; set; }
     public int CurrentTotalCount { get; set; }
+    public string? CreatorId { get; set; }
 }

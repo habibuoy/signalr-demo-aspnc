@@ -12,6 +12,10 @@ public class Vote
     public DateTime CreatedTime { get; set; }
     public DateTime? ExpiredTime { get; set; }
     public int? MaximumCount { get; set; }
+    public string? CreatorId { get; set; }
+
+    // navigational
+    public User? User { get; set; }
 
     private object voteLock = new();
 
@@ -118,7 +122,8 @@ public static class VoteExtensions
             CreatedTime = vote.CreatedTime.ToLocalTime(),
             ExpiredTime = vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value.ToLocalTime() : null,
             MaximumCount = vote.MaximumCount,
-            CurrentTotalCount = totalCount
+            CurrentTotalCount = totalCount,
+            CreatorId = vote.CreatorId
         };
     }
 

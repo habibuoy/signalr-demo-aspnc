@@ -183,7 +183,14 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
         return Results.BadRequest(ResponseObject.BadBody());
     }
 
-    var vote = inputDto.ToVote();
+    if (httpContext.User == null)
+    {
+        return Results.LocalRedirect("/accessDenied");
+    }
+
+    var creatorId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    var vote = inputDto.ToVote(creatorId);
 
     var result = await voteService.AddVoteAsync(vote);
     if (!result)
