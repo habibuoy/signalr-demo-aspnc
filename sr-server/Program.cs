@@ -45,10 +45,21 @@ builder.Services.AddAuthentication()
     }
 );
 builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<IUserService, UserService>();
+
 builder.Services.AddTransient<IVoteService, DbVoteService>();
+var voteNotification = new VoteNotification();
+builder.Services.AddSingleton<IVoteNotificationReader>(voteNotification);
+builder.Services.AddSingleton<IVoteNotificationWriter>(voteNotification);
+builder.Services.AddHostedService<VoteBroadcasterBackgroundService>();
 
 var app = builder.Build();
+
+app.Lifetime.ApplicationStopping.Register(async () =>
+{
+    await voteNotification.CloseAsync();
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -255,16 +266,15 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
 
     try
     {
-        var voteHubContext = httpContext.RequestServices.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
-        // await voteHubContext.Clients.Group($"vote-{vote.Id}").NotifyVoteUpdated(vote.ToVoteUpdatedProperties());
-        await voteHubContext.Clients.All.NotifyVoteUpdated(vote.ToVoteUpdatedProperties());
+        var notifier = httpContext.RequestServices.GetRequiredService<IVoteNotificationWriter>();
+        await notifier.WriteUpdateAsync(vote);
     }
-    catch (InvalidOperationException ex)
+    catch (Exception ex)
     {
-        httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
-            .LogInformation("Error while hubbing: {msg}", ex.Message);
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Unexpected error happened while writing vote notification");
     }
-    
+
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
 }).RequireAuthorization();
 
