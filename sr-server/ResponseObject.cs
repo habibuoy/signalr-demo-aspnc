@@ -60,4 +60,13 @@ public class ResponseObject
     {
         return Create("Resource not found");
     }
+
+    /// <summary>
+    /// Return a response object with resource not authorized message and null result
+    /// </summary>
+    /// <returns></returns>
+    public static ResponseObject NotAuthorized()
+    {
+        return Create("You are not authorized to access this resource");
+    }
 }

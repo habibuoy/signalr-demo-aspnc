@@ -35,6 +35,15 @@ builder.Services.AddSqlite<ApplicationDbContext>(connectionString,
     }
 );
 
+builder.Services.AddAuthentication()
+    .AddCookie(options =>
+    {
+        options.ExpireTimeSpan = TimeSpan.FromSeconds(30);
+        options.AccessDeniedPath = "/accessDenied";
+        options.LoginPath = "/accessDenied";
+    }
+);
+builder.Services.AddAuthorization();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<IVoteService, DbVoteService>();
 
@@ -47,6 +56,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapHub<ChatHub>("/chat");
 app.MapHub<VoteHub>("/watchvote");
@@ -109,6 +121,13 @@ app.MapPost("/login", async (LoginUserDto userDto,
 
     return Results.Ok(user.ToDto());
 });
+
+app.MapGet("/accessDenied", () =>
+{
+    return Results.Json(ResponseObject.NotAuthorized(),
+        statusCode: StatusCodes.Status401Unauthorized);
+});
+
 app.MapGet("/vote/{id}", async (string? id,
     [FromServices] IVoteService voteService) =>
 {
@@ -125,7 +144,7 @@ app.MapGet("/vote/{id}", async (string? id,
     }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
-});
+}).RequireAuthorization();
 
 app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
     HttpContext httpContext, [FromServices] IVoteService voteService) =>
@@ -156,7 +175,7 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
     }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
-});
+}).RequireAuthorization();
 
 app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     HttpContext httpContext, [FromServices] IVoteService voteService) =>
@@ -230,6 +249,6 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     }
     
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
-});
+}).RequireAuthorization();
 
 app.Run();
