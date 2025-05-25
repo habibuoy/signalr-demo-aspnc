@@ -128,7 +128,13 @@ public static class VoteExtensions
         {
             Id = vote.Id,
             Title = vote.Title,
-            SubjectCount = vote.Subjects.Count
+            CreatedTime = vote.CreatedTime,
+            Subjects = vote.Subjects.Select(s => new VoteSubjectProperties()
+            {
+                Id = s.Id,
+                Name = s.Name,
+                VoteCount = s.Voters.Count
+            }).ToList()
         };
     }
 
@@ -142,7 +148,13 @@ public static class VoteExtensions
             {
                 acc += c.Voters.Count;
                 return acc;
-            })
+            }),
+            Subjects = vote.Subjects.Select(s => new VoteSubjectProperties()
+            {
+                Id = s.Id,
+                Name = s.Name,
+                VoteCount = s.Voters.Count
+            }).ToList()
         };
     }
 }
