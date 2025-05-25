@@ -30,6 +30,25 @@ public class InMemoryVoteService : IVoteService
         return Task.FromResult<Vote?>(vote);
     }
 
+    public Task<IEnumerable<VoteSubjectInput>?> GetVoteSubjectInputs(string voteId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(voteId);
+
+        var vote = votes.Values.FirstOrDefault(v => v.Id == voteId);
+        if (vote == null)
+        {
+            return Task.FromResult<IEnumerable<VoteSubjectInput>?>(null);
+        }
+
+        var inputs = vote.Subjects.Aggregate(new List<VoteSubjectInput>(), (acc, e) =>
+        {
+            acc.AddRange(e.Voters);
+            return acc;
+        });
+
+        return Task.FromResult<IEnumerable<VoteSubjectInput>?>(inputs);
+    }
+
     public Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
         string? sortBy = null,
         string? sortOrder = null,

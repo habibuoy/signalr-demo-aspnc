@@ -220,11 +220,23 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
         return Results.BadRequest(ResponseObject.BadQuery());
     }
 
+    if (httpContext.User is not ClaimsPrincipal user)
+    {
+        return Results.LocalRedirect("/accessDenied");
+    }
+
     var vote = await voteService.GetVoteByIdAsync(inputVote.VoteId);
 
     if (vote == null)
     {
         return Results.NotFound(ResponseObject.NotFound());
+    }
+
+    var inputs = vote.Subjects.SelectMany(s => s.Voters);
+    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
+    {
+        return Results.Conflict(ResponseObject.Create("You already have given your vote on this"));
     }
 
     if (vote.IsClosed()
@@ -248,7 +260,7 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     {
         try
         {
-            var result = await voteService.GiveVoteAsync(inputVote.SubjectId.ToString(), inputVote.UserId);
+            var result = await voteService.GiveVoteAsync(inputVote.SubjectId.ToString(), userId);
             if (!result)
             {
                 remainingRetry--;

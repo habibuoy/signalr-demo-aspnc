@@ -10,6 +10,7 @@ public interface IVoteService
         string? sortBy = null,
         string? sortOrder = null,
         Func<Vote, bool>? predicate = null);
+    Task<IEnumerable<VoteSubjectInput>?> GetVoteSubjectInputs(string voteId);
     Task<bool> AddVoteAsync(Vote vote);
     Task<bool> RemoveVoteAsync(string id);
     /// <summary>
