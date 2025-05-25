@@ -8,6 +8,9 @@ using SignalRDemo.Server.Services;
 using SignalRDemo.Server.Datas;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,8 +27,15 @@ builder.Services.AddSqlite<ApplicationDbContext>(connectionString,
         if (builder.Environment.IsDevelopment())
         {
             options.EnableSensitiveDataLogging();
+            options.ConfigureWarnings(w =>
+            {
+                w.Throw(RelationalEventId.MultipleCollectionIncludeWarning);
+            });
         }
-    });
+    }
+);
+
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<IVoteService, DbVoteService>();
 
 var app = builder.Build();
@@ -41,6 +51,64 @@ app.UseHttpsRedirection();
 app.MapHub<ChatHub>("/chat");
 app.MapHub<VoteHub>("/watchvote");
 
+app.MapPost("/register", async (CreateUserDto userDto,
+    [FromServices] IUserService userService) =>
+{
+    var email = userDto.Email;
+    var user = await userService.FindUserByEmailAsync(email);
+    if (user != null)
+    {
+        return Results.Conflict(ResponseObject.Create($"Email {email} already registered"));
+    }
+
+    user = await userService.CreateUserAsync(userDto.Email,
+        userDto.Password, userDto.FirstName, userDto.LastName);
+    if (user == null)
+    {
+        return Results.InternalServerError(ResponseObject.Create(
+            $"Error on our side while registering {email}"));
+    }
+
+    return Results.Ok(user.ToDto());
+});
+
+app.MapPost("/login", async (LoginUserDto userDto,
+    HttpContext httpContext,
+    [FromServices] IUserService userService) =>
+{
+    var email = userDto.Email;
+    var user = await userService.FindUserByEmailAsync(email);
+    if (user == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Email {email} is not registered"));
+    }
+
+    var valid = await userService.AuthenticateAsync(user, userDto.Password);
+    if (!valid)
+    {
+        return Results.BadRequest(ResponseObject.Create($"Invalid email or password"));
+    }
+
+    var claims = new List<Claim>()
+    {
+        new (ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+        new (ClaimTypes.Role, "User"),
+        new (ClaimTypes.NameIdentifier, user.Id)
+    };
+
+    var claimsIdentity = new ClaimsIdentity(claims,
+        CookieAuthenticationDefaults.AuthenticationScheme);
+
+    var authenticationProperties = new AuthenticationProperties
+    {
+        IssuedUtc = DateTime.Now,
+        ExpiresUtc = DateTime.Now.AddSeconds(10)
+    };
+
+    await httpContext.SignInAsync(new ClaimsPrincipal(claimsIdentity), authenticationProperties);
+
+    return Results.Ok(user.ToDto());
+});
 app.MapGet("/vote/{id}", async (string? id,
     [FromServices] IVoteService voteService) =>
 {
