@@ -6,6 +6,10 @@ namespace SignalRDemo.Server.Interfaces;
 public interface IVoteService
 {
     Task<Vote?> GetVoteByIdAsync(string id);
+    Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
+        string? sortBy = null,
+        string? sortOrder = null,
+        Func<Vote, bool>? predicate = null);
     Task<bool> AddVoteAsync(Vote vote);
     Task<bool> RemoveVoteAsync(string id);
     /// <summary>

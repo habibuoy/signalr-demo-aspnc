@@ -10,6 +10,7 @@ public class DbVoteService : IVoteService
     private readonly ApplicationDbContext dbContext;
     private readonly ILogger<DbVoteService> logger;
 
+
     public DbVoteService(ApplicationDbContext dbContext,
         ILogger<DbVoteService> logger)
     {
@@ -60,9 +61,61 @@ public class DbVoteService : IVoteService
         // because we need the Queryable.Include and .ThenInclude.
         // FindAsync does not include the relational properties.
         var vote = await dbContext.Votes
-            .Include(v => v.Subjects).ThenInclude(s => s.Voters)
+            .Include(v => v.Subjects)
+            .ThenInclude(s => s.Voters)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Id == id);
         return vote;
+    }
+
+    public async Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
+        string? sortBy = null,
+        string? sortOrder = null,
+        Func<Vote, bool>? predicate = null)
+    {
+        var votes = dbContext.Votes.AsQueryable();
+
+        if (predicate != null)
+        {
+            votes = votes.Where(predicate).AsQueryable();
+        }
+
+        bool sortDesc = sortOrder != null && sortOrder == "desc";
+
+        if (!string.IsNullOrEmpty(sortBy))
+        {
+            if (sortBy == "cdt")
+            {
+                if (sortDesc)
+                {
+                    votes = votes.OrderByDescending(v => v.CreatedTime);
+                }
+                else
+                {
+                    votes = votes.OrderBy(v => v.CreatedTime);
+                }
+            }
+        }
+        else
+        {
+            if (sortDesc)
+            {
+                votes = votes.OrderByDescending(v => v.CreatedTime);
+            }
+            else
+            {
+                votes = votes.OrderBy(v => v.CreatedTime);
+            }
+        }
+
+        votes = votes.Take(count == null ? 10 : count!.Value);
+
+        votes = votes
+            .Include(v => v.Subjects)
+            .ThenInclude(s => s.Voters)
+            .AsSplitQuery();
+
+        return await votes.ToListAsync();
     }
 
     public async Task<bool> RemoveVoteAsync(string id)

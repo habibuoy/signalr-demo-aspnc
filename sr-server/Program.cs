@@ -8,6 +8,7 @@ using SignalRDemo.Server.Services;
 using SignalRDemo.Server.Datas;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
@@ -127,6 +128,22 @@ app.MapGet("/accessDenied", () =>
     return Results.Json(ResponseObject.NotAuthorized(),
         statusCode: StatusCodes.Status401Unauthorized);
 });
+
+app.MapGet("/votes", async ([AsParameters] VotesQueryDto queryDto,
+    [FromServices] IVoteService voteService) =>
+{
+    if (queryDto == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var votes = await voteService.GetVotesAsync(queryDto.Count,
+        queryDto.SortBy, queryDto.SortOrder);
+
+    votes ??= [];
+
+    return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToDto())));
+}).RequireAuthorization();
 
 app.MapGet("/vote/{id}", async (string? id,
     [FromServices] IVoteService voteService) =>

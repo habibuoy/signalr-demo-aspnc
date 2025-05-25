@@ -30,6 +30,19 @@ public class InMemoryVoteService : IVoteService
         return Task.FromResult<Vote?>(vote);
     }
 
+    public Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
+        string? sortBy = null,
+        string? sortOrder = null,
+        Func<Vote, bool>? predicate = null)
+    {
+        if (predicate != null)
+        {
+            return Task.FromResult(votes.Values.Where(predicate));
+        }
+
+        return Task.FromResult<IEnumerable<Vote>>(votes.Values);
+    }
+
     public Task<bool> UpdateVoteAsync(string voteId, Vote vote)
     {
         if (!votes.TryGetValue(voteId, out var existing))
