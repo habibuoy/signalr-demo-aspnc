@@ -84,7 +84,7 @@ public class Vote
                 var voteInput = new VoteSubjectInput()
                 {
                     VoterId = userId,
-                    InputTime = DateTime.Now
+                    InputTime = DateTime.UtcNow
                 };
 
                 voteSubject.Voters.Add(voteInput);

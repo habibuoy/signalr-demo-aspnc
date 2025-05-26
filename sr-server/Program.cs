@@ -125,8 +125,8 @@ app.MapPost("/login", async (LoginUserDto userDto,
 
     var authenticationProperties = new AuthenticationProperties
     {
-        IssuedUtc = DateTime.Now,
-        ExpiresUtc = DateTime.Now.AddSeconds(10)
+        IssuedUtc = DateTime.UtcNow,
+        ExpiresUtc = DateTime.UtcNow.AddSeconds(10)
     };
 
     await httpContext.SignInAsync(new ClaimsPrincipal(claimsIdentity), authenticationProperties);

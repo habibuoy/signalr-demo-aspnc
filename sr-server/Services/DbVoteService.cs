@@ -228,7 +228,7 @@ public class DbVoteService : IVoteService
                 {
                     Id = 0,
                     VoterId = userId,
-                    InputTime = DateTime.Now
+                    InputTime = DateTime.UtcNow
                 });
                 await dbContext.SaveChangesAsync();
                 return true;
