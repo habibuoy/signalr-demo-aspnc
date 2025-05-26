@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
+using SignalRDemo.Flooder;
 using SignalRDemo.Shared;
 
 var services = new ServiceCollection();
@@ -23,6 +24,8 @@ const string CreateVoteUrl = $"{BaseVoteUrl}/create";
 const string Email = "creator@gmail.com";
 const string Password = "Password123@";
 const string ServerResponseHeaderCookieKey = "Set-Cookie";
+const string VoteRecordsFilePath = "./vote-records.json";
+const string VoteConfigFilePath = "./vote-config.json";
 
 var floodTypePrompter = new InputPrompter("Choose (1/2):",
     "+++++++++++\n" +
@@ -54,7 +57,7 @@ while (true)
 
         await Task.Delay((int)(DelayBeforePostingVote * 1000));
 
-        voteId = await PostVoteAsync(httpClientFactory.CreateClient(), null, 60 * 5);
+        voteId = await PostVoteAsync(httpClientFactory.CreateClient(), null);
     }
     else
     {
@@ -276,14 +279,14 @@ static bool IsNumber(string input)
     return int.TryParse(input, out _);
 }
 
-static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie, int? voteDuration = 60)
+static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie)
 {
     Console.WriteLine("Begin posting a vote");
 
     try
     {
         httpClient ??= new HttpClient();
-        
+
         Console.WriteLine("Logging in...");
         var loginResponse = await LoginCreatorAsync(httpClient);
         if (loginResponse.cookie == null)
@@ -292,11 +295,46 @@ static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie,
             return null;
         }
 
+        VoteRecords? records = null;
+        VoteConfig? config = null;
+        
+        var jsonOptions = new JsonSerializerOptions()
+        {
+            // prettify
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        try
+        {
+            using var voteRecordsFile = File.Open(VoteRecordsFilePath, FileMode.OpenOrCreate);
+            records = JsonSerializer.Deserialize<VoteRecords>(voteRecordsFile, jsonOptions);
+        }
+        catch (JsonException)
+        {
+            records = new VoteRecords();
+        }
+
+        try
+        {
+            using var voteConfigFile = File.Open(VoteConfigFilePath, FileMode.OpenOrCreate);
+            config = JsonSerializer.Deserialize<VoteConfig>(voteConfigFile, jsonOptions);
+        }
+        catch (JsonException)
+        {
+            config = VoteConfig.Default;
+        }
+
+        var subjects = new string[config!.SubjectCount];
+        for (int i = 0; i < subjects.Length; i++)
+        {
+            subjects[i] = $"Subject {records!.LastSubjectIndex++ + 1}";
+        }
         var votingContent = JsonContent.Create(new
         {
-            Title = "Test vote",
-            Subjects = new string[] { "Subject 1", "Subject 2" },
-            Duration = voteDuration
+            Title = $"Test vote {records!.LastVoteIndex++}",
+            Subjects = subjects,
+            Duration = config.Duration
         });
 
         Console.WriteLine("Posting a vote...");
@@ -321,6 +359,9 @@ static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie,
 
         Console.WriteLine("Finished posting a vote");
 
+        File.WriteAllText(VoteRecordsFilePath, JsonSerializer.Serialize(records, jsonOptions));
+        File.WriteAllText(VoteConfigFilePath, JsonSerializer.Serialize(config, jsonOptions));
+
         return voteId.GetValue<string>();
     }
     catch (Exception ex)
@@ -342,6 +383,10 @@ static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie,
         }
 
         return null;
+    }
+    finally
+    {
+        
     }
 }
 
