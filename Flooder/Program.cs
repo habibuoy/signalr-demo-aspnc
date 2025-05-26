@@ -160,7 +160,9 @@ static async Task FloodTaskAsync(int index, string voteId,
         var credentialBody = JsonContent.Create(new
         {
             Email = $"flooder{index}@gmail.com",
-            Password = "Password123@"
+            Password = "Password123@",
+            FirstName = "Flooder",
+            LastName = index.ToString()
         });
 
         var loginResponse = await LoginAsync(httpClient, credentialBody);
