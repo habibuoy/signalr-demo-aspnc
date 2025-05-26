@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using SignalRDemo.Flooder;
 using SignalRDemo.Shared;
+using static SignalRDemo.Shared.AppDefaults;
 
 var services = new ServiceCollection();
 services.AddHttpClient();
@@ -17,9 +18,6 @@ var serviceProvider = services.BuildServiceProvider();
 const float DelayBeforePostingVote = 1f; // in s
 const float DelayBeforeFlood = 3f; // in s
 
-const string LoginUrl = "https://localhost:7000/login";
-const string RegisterUrl = "https://localhost:7000/register";
-const string BaseVoteUrl = "https://localhost:7000/vote";
 const string CreateVoteUrl = $"{BaseVoteUrl}/create";
 const string Email = "creator@gmail.com";
 const string Password = "Password123@";
