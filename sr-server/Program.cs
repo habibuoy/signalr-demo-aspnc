@@ -116,7 +116,7 @@ app.MapPost("/login", async (LoginUserDto userDto,
     var claims = new List<Claim>()
     {
         new (ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-        new (ClaimTypes.Role, "User"),
+        new (ClaimTypes.Email, email),
         new (ClaimTypes.NameIdentifier, user.Id)
     };
 
@@ -234,9 +234,10 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
 
     var inputs = vote.Subjects.SelectMany(s => s.Voters);
     var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    var email = user.FindFirstValue(ClaimTypes.Email);
     if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
     {
-        return Results.Conflict(ResponseObject.Create("You already have given your vote on this"));
+        return Results.Conflict(ResponseObject.Create($"User {email} already have given vote on vote id {vote.Id}"));
     }
 
     if (vote.IsClosed()
@@ -253,7 +254,6 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
 
     var success = false;
 
-    // Can put a retry logic here in case of concurrency exception
     int remainingRetry = 3;
 
     while (!success && remainingRetry > 0)
