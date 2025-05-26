@@ -37,7 +37,7 @@ public class VoteClient
 
         connection.On<VoteCreatedProperties>("NotifyVoteCreated", (props) =>
         {
-            Console.WriteLine($"New vote has been created, Id: {props.Id}, Title: {props.Title}, Subject count: {props.SubjectCount}");
+            Console.WriteLine($"New vote has been created, Id: {props.Id}, Title: {props.Title}, Subject count: {props.Subjects.Count}");
         });
 
         connection.On<VoteUpdatedProperties>("NotifyVoteUpdated", (props) =>
