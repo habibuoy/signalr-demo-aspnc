@@ -45,7 +45,8 @@ public class UserService : IUserService
             Email = email,
             FirstName = firstName,
             PasswordHash = PasswordHasher.Hash(password),
-            LastName = lastName
+            LastName = lastName,
+            CreatedTime = DateTime.UtcNow
         };
 
         dbContext.Add(user);

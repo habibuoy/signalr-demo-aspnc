@@ -9,6 +9,7 @@ public class User
     // public required byte[] PasswordHash { get; set; }
     // public required byte[] PasswordSalt { get; set; }
     public required string PasswordHash { get; set; }
+    public DateTime CreatedTime { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
 }
