@@ -173,7 +173,7 @@ static async Task FloodTaskAsync(int index, string voteId,
         {
             if (loginResponse.statusCode == HttpStatusCode.NotFound)
             {
-                var registerRespone = await SendHttpRequestAsync(httpClient, RegisterUrl, HttpMethod.Post, credentialBody);
+                var registerRespone = await RegisterAsync(httpClient, credentialBody);
                 if (!registerRespone.success)
                 {
                     Console.WriteLine($"Flood task {index} failed when registering: {registerRespone.message}");

@@ -68,6 +68,26 @@ public static class HttpHelper
         return (GetCookie(cookies.Single()), loginResponse.statusCode, loginResponse.message);
     }
 
+    public static async Task<(bool success, HttpStatusCode statusCode, string? message)> RegisterAsync(HttpClient? httpClient, HttpContent? requestBody)
+    {
+        httpClient ??= new HttpClient();
+
+        var registerResponse = await SendHttpRequestAsync(httpClient, RegisterUrl, HttpMethod.Post,
+            requestBody);
+
+        return (registerResponse.success, registerResponse.statusCode, registerResponse.message);
+    }
+
+    public static async Task<(bool success, HttpStatusCode statusCode, string? message)> LogoutAsync(HttpClient? httpClient, Cookie cookie)
+    {
+        httpClient ??= new HttpClient();
+
+        var logoutResponse = await SendHttpRequestAsync(httpClient, LogoutUrl, HttpMethod.Get,
+            cookie: cookie);
+
+        return (logoutResponse.success, logoutResponse.statusCode, logoutResponse.message);
+    }
+
     public static async Task<(bool success, HttpStatusCode statusCode, string? message, JsonNode? resultJson, HttpResponseHeaders headers)>
     SendHttpRequestAsync(HttpClient httpClient, string url, HttpMethod method,
         HttpContent? content = null, Cookie? cookie = null)
