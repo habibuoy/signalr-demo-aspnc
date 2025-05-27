@@ -1,10 +1,17 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server.Interfaces;
+using SignalRDemo.Shared;
+using SignalRDemo.Shared.Models;
 
 namespace SignalRDemo.Server;
 
 public class VoteHub : Hub<IVoteHubClient>
 {
+    private const string VoteGroupNamePrefix = "vote-";
+
     private readonly ILogger<VoteHub> logger;
 
     public VoteHub(ILogger<VoteHub> logger)
@@ -12,45 +19,138 @@ public class VoteHub : Hub<IVoteHubClient>
         this.logger = logger;
     }
 
-    public async Task<bool> SubscribeVote(string user, string voteId)
+    [Authorize]
+    public async Task Send(SendMessageProperties properties)
     {
+        await Clients.All.ReceiveMessage(properties);
+    }
+
+    [Authorize]
+    public async Task<InvocationResult> SubscribeVote(string voteId,
+        [FromServices] IVoteService voteService)
+    {
+        if (Context.User == null)
+        {
+            return InvocationResult.Failed("Not authorized");
+        }
+
+        var userId = Context.UserIdentifier;
+        var userName = Context.User?.FindFirstValue(ClaimTypes.Name);
+        logger.LogInformation("User {user} is trying to subscribe to vote {voteId}",
+            userName, voteId);
+
         try
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"vote-{voteId}");
-            return true;
+            var vote = await voteService.GetVoteByIdAsync(voteId);
+
+            if (vote == null)
+            {
+                logger.LogInformation("Vote {voteId} does not exist",
+                    voteId);
+                return InvocationResult.Failed($"Vote {voteId} does not exist");
+            }
+
+            var httpContext = Context.GetHttpContext();
+            if (httpContext != null)
+            {
+                var connectionReader = httpContext.RequestServices.GetRequiredService<IHubConnectionReader>();
+                var allConnectedIds = await connectionReader.GetConnectionIdsAsync(userId!);
+                var groupName = GetVoteGroupName(voteId);
+                foreach (var connId in allConnectedIds)
+                {
+                    await Groups.AddToGroupAsync(connId, groupName);
+                }
+
+                await Clients.Users(userId!).ReceiveMessage(
+                    SendMessageProperties.ServerNotification($"You subscribed to vote {voteId}"));
+            }
         }
         catch (Exception ex)
         {
-            return false;
+            logger.LogError(ex, "Unknown error happened while user {user} subcribing vote {voteId}",
+                userId, voteId);
         }
+
+        return InvocationResult.Success();
     }
 
-    public async Task<bool> UnsubscribeVote(string user, string voteId)
+    [Authorize]
+    public async Task<InvocationResult> UnsubscribeVote(string voteId, 
+        [FromServices] IVoteService voteService)
     {
+        if (Context.User == null)
+        {
+            return InvocationResult.Failed("Not authorized");
+        }
+        
+        var userId = Context.UserIdentifier;
+        var userName = Context.User?.FindFirstValue(ClaimTypes.Name);
+        logger.LogInformation("User {user} is unsubscribing to vote {voteId}",
+            userName, voteId);
+
         try
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"vote-{voteId}");
-            return true;
+            var vote = await voteService.GetVoteByIdAsync(voteId);
+
+            if (vote == null)
+            {
+                logger.LogInformation("Vote {voteId} does not exist",
+                    voteId);
+                return InvocationResult.Failed($"Vote {voteId} does not exist");
+            }
+
+            var httpContext = Context.GetHttpContext();
+            if (httpContext != null)
+            {
+                var connectionReader = httpContext.RequestServices.GetRequiredService<IHubConnectionReader>();
+                var allConnectedIds = await connectionReader.GetConnectionIdsAsync(userId!);
+                var groupName = GetVoteGroupName(voteId);
+                foreach (var connId in allConnectedIds)
+                {
+                    await Groups.RemoveFromGroupAsync(connId, groupName);
+                }
+
+                await Clients.Users(userId!).ReceiveMessage(
+                    SendMessageProperties.ServerNotification($"You unsubscribed to vote {voteId}"));
+            }
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GetVoteGroupName(voteId));
         }
         catch (Exception ex)
         {
-            return false;
+            logger.LogError(ex, "Unknown error happened while user {user} unsubcribing vote {voteId}",
+                userId, voteId);
         }
+
+        return InvocationResult.Success();
     }
 
-    // public override Task OnConnectedAsync()
-    // {
-    //     if (Context.GetHttpContext() is HttpContext httpContext)
-    //     {
-    //         var connectionId = Context.ConnectionId;
-    //         logger.LogInformation("Connection {conId} has http context", connectionId);
-    //         if (httpContext.Request.Query["autoSubs"] is StringValues autoSub
-    //             && autoSub != StringValues.Empty)
-    //         {
-    //             logger.LogInformation("Connection {conId} has auto sub query", connectionId);
-    //             Groups.AddToGroupAsync(connectionId, "AutoSubscribers");
-    //         }
-    //     }
-    //     return base.OnConnectedAsync();
-    // }
+    public static string GetVoteGroupName(string voteId)
+    {
+        return $"{VoteGroupNamePrefix}{voteId}";
+    }
+
+    public override Task OnConnectedAsync()
+    {
+        if (Context.GetHttpContext() is HttpContext httpContext)
+        {
+            var connectionId = Context.ConnectionId;
+
+            var connectionManager = httpContext.RequestServices.GetRequiredService<IHubConnectionManager>();
+            connectionManager.AddConnectionIdAsync(Context.UserIdentifier!, connectionId);
+        }
+        return base.OnConnectedAsync();
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (Context.GetHttpContext() is HttpContext httpContext)
+        {
+            var connectionId = Context.ConnectionId;
+
+            var connectionManager = httpContext.RequestServices.GetRequiredService<IHubConnectionManager>();
+            connectionManager.RemoveConnectionIdAsync(Context.UserIdentifier!, connectionId);
+        }
+        return base.OnDisconnectedAsync(exception);
+    }
 }

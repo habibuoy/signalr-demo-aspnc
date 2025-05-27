@@ -1,4 +1,3 @@
-
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server.Interfaces;
@@ -76,7 +75,8 @@ public class VoteBroadcasterBackgroundService : BackgroundService
             if (v == null) continue;
 
             var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
-            await voteHubContext.Clients.All.NotifyVoteUpdated(v.ToVoteUpdatedProperties());
+            await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
+                .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
         }
     }
 

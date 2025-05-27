@@ -50,6 +50,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddTransient<IVoteService, DbVoteService>();
+builder.Services.AddSingleton<IHubConnectionManager, HubConnectionManager>();
+builder.Services.AddSingleton<IHubConnectionReader, HubConnectionManager>();
 var voteNotification = new VoteNotification();
 builder.Services.AddSingleton<IVoteNotificationReader>(voteNotification);
 builder.Services.AddSingleton<IVoteNotificationWriter>(voteNotification);
@@ -74,7 +76,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHub<ChatHub>("/chat");
-app.MapHub<VoteHub>("/watchvote");
+app.MapHub<VoteHub>("/watchvote", configure =>
+    {
+        configure.CloseOnAuthenticationExpiration = true;
+    })
+    .RequireAuthorization();
 
 app.MapPost("/register", async (CreateUserDto userDto,
     [FromServices] IUserService userService) =>
