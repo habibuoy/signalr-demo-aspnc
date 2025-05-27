@@ -134,6 +134,12 @@ app.MapPost("/login", async (LoginUserDto userDto,
     return Results.Ok(user.ToDto());
 });
 
+app.MapGet("/logout", async (HttpContext httpContext) =>
+{
+    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Ok(ResponseObject.Success(null!));
+}).RequireAuthorization();
+
 app.MapGet("/accessDenied", () =>
 {
     return Results.Json(ResponseObject.NotAuthorized(),
