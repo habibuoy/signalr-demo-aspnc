@@ -1,33 +1,115 @@
+using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using SignalRDemo.Shared;
+using SignalRDemo.Shared.Models;
+using static SignalRDemo.Shared.HttpHelper;
 
 namespace SignalRDemo.Client;
 
 public class VoteClient
 {
-    private readonly string endpoint;
-    private readonly string user;
+    private readonly string endpoint = string.Empty;
+    private readonly UserInfo? user;
 
-    private HubConnection connection;
+    private HubConnection? connection;
+    private Cookie? cookie;
+    private CookieContainer cookieContainer = new();
 
-    public HubConnectionState State => connection.State;
+    public Cookie? Cookie => cookie;
 
-    public event Action ConnectionClosed;
+    public HubConnectionState? State => connection?.State;
 
-    public VoteClient(string endpoint, string user)
+    public event Action? ConnectionClosed;
+
+    private VoteClient()
+    {
+        
+    }
+
+    public VoteClient(string endpoint, UserInfo user)
     {
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
-        ArgumentException.ThrowIfNullOrEmpty(user);
+        ArgumentNullException.ThrowIfNull(user);
 
         this.endpoint = endpoint;
         this.user = user;
     }
 
+    public VoteClient(string endpoint, Cookie cookie)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(endpoint);
+        ArgumentNullException.ThrowIfNull(cookie);
+
+        this.endpoint = endpoint;
+        this.cookie = cookie;
+    }
+
     public async Task InitializeAsync()
     {
+        if (cookie != null)
+        {
+            try
+            {
+                cookieContainer.Add(cookie);
+            }
+            catch (ArgumentNullException ex)
+            {
+                throw new VoteClientException($"Argument null error happened: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                throw new VoteClientException($"Argument error happened: {ex.Message}");
+            }
+            catch (CookieException ex)
+            {
+                throw new VoteClientException($"Provided cookie causing error: {ex.Message}");
+            }
+        }
+        else
+        {
+            var httpClient = new HttpClient();
+            var credentialBody = JsonContent.Create(user);
+            var loginResponse = await LoginAsync(httpClient, credentialBody);
+
+            Console.WriteLine($"({nameof(VoteClient)}): Logging in {user!.Email}");
+            if (loginResponse.cookie == null
+                && loginResponse.statusCode == HttpStatusCode.NotFound)
+            {
+                Console.WriteLine($"({nameof(VoteClient)}): User {user!.Email} is not registered yet, registering.");
+                var registerRespone = await RegisterAsync(httpClient, credentialBody);
+                if (!registerRespone.success)
+                {
+                    throw new VoteClientException($"Failed when registering {user?.Email}: {registerRespone.message}");
+                }
+
+                Console.WriteLine($"({nameof(VoteClient)}): Logging in {user!.Email} again");
+                loginResponse = await LoginAsync(httpClient, credentialBody);
+            }
+
+            if (loginResponse.cookie == null)
+            {
+                throw new VoteClientException($"Failed when logging in {user?.Email}: {loginResponse.message}");
+            }
+
+            Console.WriteLine($"({nameof(VoteClient)}): {user!.Email} Logged in");
+
+            cookie = loginResponse.cookie;
+            if (string.IsNullOrEmpty(cookie.Domain))
+            {
+                string host = new Uri(endpoint).Host;
+                cookie.Domain = host;
+            }
+            cookieContainer.Add(cookie);
+        }
+
         connection = new HubConnectionBuilder()
-            .WithUrl(endpoint)
+            .WithUrl(endpoint, configure =>
+            {
+                configure.Cookies = cookieContainer;
+                configure.UseStatefulReconnect = true;
+            })
             .Build();
 
         connection.On<SendMessageProperties>("ReceiveMessage", (props) =>
@@ -46,84 +128,123 @@ public class VoteClient
         });
 
         connection.Closed += OnConnectionClosed;
-        Console.WriteLine("Connecting to the server");
+        Console.WriteLine($"({nameof(VoteClient)}): Connecting to the server");
 
         try
         {
             await connection.StartAsync();
-            Console.WriteLine("Connected to the server");
+            Console.WriteLine($"({nameof(VoteClient)}): Connected to the server");
         }
         catch (HttpRequestException httpExc)
         {
-            Console.WriteLine($"Http Error happened while connecting to the server: {httpExc.Message}");
-            throw;
+            throw new VoteClientException($"Http Error happened while connecting to the server: {httpExc.Message}");
         }
         catch (HubException ex)
         {
-            Console.WriteLine($"Hub Error happened while connecting to the server: {ex.Message}");
-            throw;
+            throw new VoteClientException($"Hub Error happened while connecting to the server: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            throw new VoteClientException($"Unknown Error happened while connecting to the server", ex);
         }
     }
 
     public async Task CloseAsync()
     {
-        Console.WriteLine("Stopping connection");
+        Console.WriteLine($"({nameof(VoteClient)}): Stopping connection");
         try
         {
-            await connection.StopAsync();
-            Console.WriteLine("Connection stopped");
+            await connection!.StopAsync();
+            Console.WriteLine($"({nameof(VoteClient)}): Connection stopped");
         }
         catch (HubException ex)
         {
-            Console.WriteLine($"Error happened while stopping connection to the server: {ex.Message}");
+            throw new VoteClientException($"Error happened while stopping connection to the server: {ex.Message}.");
+        }
+        catch (NullReferenceException)
+        {
+            throw new VoteClientException($"Error happened while stopping connection. Connection is not valid.");
+        }
+        catch (Exception ex)
+        {
+            throw new VoteClientException($"Unknown Error happened while stopping connection to the server: {ex.Message}.");
         }
     }
 
     public async Task SendMessageAsync(string message)
     {
+        var command = string.Empty;
         try
         {
             if (message.StartsWith("subsvote", StringComparison.CurrentCultureIgnoreCase))
             {
-                var voteId = message.Split(" ")[1];
-                if (voteId != null)
-                {
-                    var result = await connection.InvokeAsync<bool>("SubscribeVote", user, voteId);
-                    if (result)
-                    {
-                        Console.WriteLine($"Succesfully subscribed to vote {voteId}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Failed to subscribe to vote {voteId}");
-                    }
-                    return;
-                }
+                command = "SubscribeVote";
+            }
+            else if (message.StartsWith("unsubsvote", StringComparison.CurrentCultureIgnoreCase))
+            {
+                command = "UnsubscribeVote";
             }
 
-            if (message.StartsWith("unsubsvote", StringComparison.CurrentCultureIgnoreCase))
+            if (!string.IsNullOrEmpty(command))
             {
                 var voteId = message.Split(" ")[1];
-                if (voteId != null)
+                var result = await connection!.InvokeAsync<InvocationResult>(command, voteId);
+                if (result.IsSuccess)
                 {
-                    var result = await connection.InvokeAsync<bool>("UnsubscribeVote", user, voteId);
-                    if (result)
-                    {
-                        Console.WriteLine($"Succesfully unsubscribed from vote {voteId}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Failed to unsubscribe from vote {voteId}");
-                    }
-                    return;
+                    Console.WriteLine($"({nameof(VoteClient)}): Succesfully invoking command {command} of vote {voteId}");
                 }
+                else
+                {
+                    Console.WriteLine($"({nameof(VoteClient)}): Failed to invoke command {command} of vote {voteId}: {result.Message}");
+                }
+                return;
             }
 
-            await connection.SendAsync("send", new { Sender = user, Message = message });
+            await connection!.SendAsync("Send", new { Sender = user!.FirstName, Message = message });
         }
         catch (InvalidOperationException)
         {
-            throw new ChatClientException("Error happened while sending message. Connection has been closed");
+            if (string.IsNullOrEmpty(command))
+            {
+                throw new VoteClientException("Error happened while sending message. Connection has been closed.");
+            }
+            else
+            {
+                throw new VoteClientException($"Error happened while invoking command {command}. Connection has been closed.");
+            }
+        }
+        catch (NullReferenceException ex)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                throw new VoteClientException($"Error happened while sending message. Connection is not valid.", ex);
+            }
+            else
+            {
+                throw new VoteClientException($"Error happened while invoking command {command}. Connection is not valid.", ex);
+            }
+        }
+        catch (HubException ex)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                throw new VoteClientException($"Hub Error happened while sending message.", ex);
+            }
+            else
+            {
+                throw new VoteClientException($"Hub Error happened while invoking command {command}.", ex);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                throw new VoteClientException($"Unknown Error happened while sending message.", ex);
+            }
+            else
+            {
+                throw new VoteClientException($"Unknown Error happened while invoking command {command}.", ex);
+            }
         }
     }
 
@@ -131,8 +252,11 @@ public class VoteClient
     {
         if (ex != null)
         {
-            Console.WriteLine($"Connection was closed: {ex.Message}");
-            Console.Clear();
+            Console.WriteLine($"({nameof(VoteClient)}): Connection was closed due to connection error: {ex.Message}");
+        }
+        else
+        {
+            Console.WriteLine($"({nameof(VoteClient)}): Connection was closed by either server or the client");
         }
 
         if (connection != null)

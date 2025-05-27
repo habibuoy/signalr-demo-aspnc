@@ -1,22 +1,34 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using SignalRDemo.Client;
-using SignalRDemo.Shared;
+using static SignalRDemo.Shared.HttpHelper;
+using static SignalRDemo.Shared.FileHelper;
 
 const string Endpoint = "https://localhost:7000/watchvote";
+const string ClientConfigFilePath = "./client-config.json";
 
-var userPrompter = new InputPrompter("Enter user: ", acceptableInputs: null);
-string? user = userPrompter.Prompt();
+var loadResult = LoadOrCreateFromJsonFile(ClientConfigFilePath,
+    static () => new ClientConfig(), defaultJsonSerializerOptions);
 
-var client = new VoteClient(Endpoint, user);
+Console.WriteLine("Loading config file");
 
+if (loadResult.result is not { } config)
+{
+    Console.WriteLine($"Failed when loading or creating client config file: {loadResult.message}\nQuitting app.");
+    return;
+}
+
+Console.WriteLine("Config file loaded");
+
+var client = new VoteClient(Endpoint, config.UserInfo);
+
+Console.WriteLine($"Initializing client");
 try
 {
     await client.InitializeAsync();
 }
-catch (Exception)
+catch (VoteClientException ex)
 {
-    Console.WriteLine("Failed to initialize chat client, quitting app");
+    Console.WriteLine($"Failed to initialize vote client, quitting app: {ex}");
     return;
 }
 
@@ -38,19 +50,39 @@ while (client.State == HubConnectionState.Connected)
         {
             await client.CloseAsync();
         }
-        catch (HubException ex)
+        catch (VoteClientException ex)
         {
             Console.WriteLine(ex);
         }
-
         break;
+    }
+
+    if (message == "logout")
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var logoutResponse = await LogoutAsync(httpClient, client.Cookie!);
+            if (!logoutResponse.success)
+            {
+                Console.WriteLine($"Failed logout: {logoutResponse.message}");
+                continue;
+            }
+
+            Console.WriteLine($"Succesfully logged out");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error happened while logging out: {ex}");
+        }
+        continue;
     }
 
     try
     {
         await client.SendMessageAsync(message);
     }
-    catch (ChatClientException ex)
+    catch (VoteClientException ex)
     {
         Console.WriteLine(ex);
         continue;
