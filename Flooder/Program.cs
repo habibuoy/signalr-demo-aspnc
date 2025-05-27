@@ -9,6 +9,7 @@ using SignalRDemo.Flooder;
 using SignalRDemo.Shared;
 using static SignalRDemo.Shared.AppDefaults;
 using static SignalRDemo.Shared.HttpHelper;
+using static SignalRDemo.Shared.FileHelper;
 
 var services = new ServiceCollection();
 services.AddHttpClient();
@@ -294,35 +295,26 @@ static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie)
             return null;
         }
 
-        VoteRecords? records = null;
-        VoteConfig? config = null;
-        
-        var jsonOptions = new JsonSerializerOptions()
-        {
-            // prettify
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        var loadRecord = LoadOrCreateFromJsonFile(VoteRecordsFilePath, 
+            static () => new VoteRecords(), defaultJsonSerializerOptions);
 
-        try
+        if (loadRecord.result == null)
         {
-            using var voteRecordsFile = File.Open(VoteRecordsFilePath, FileMode.OpenOrCreate);
-            records = JsonSerializer.Deserialize<VoteRecords>(voteRecordsFile, jsonOptions);
-        }
-        catch (JsonException)
-        {
-            records = new VoteRecords();
+            Console.WriteLine($"Failed to load or create vote records: {loadRecord.message}");
+            return null;
         }
 
-        try
+        var loadConfig = LoadOrCreateFromJsonFile(VoteConfigFilePath, 
+            static () => VoteConfig.Default, defaultJsonSerializerOptions);
+
+        if (loadConfig.result == null)
         {
-            using var voteConfigFile = File.Open(VoteConfigFilePath, FileMode.OpenOrCreate);
-            config = JsonSerializer.Deserialize<VoteConfig>(voteConfigFile, jsonOptions);
+            Console.WriteLine($"Failed to load or create vote config: {loadConfig.message}");
+            return null;
         }
-        catch (JsonException)
-        {
-            config = VoteConfig.Default;
-        }
+
+        var records = loadRecord.result;
+        var config = loadConfig.result;
 
         var subjects = new string[config!.SubjectCount];
         for (int i = 0; i < subjects.Length; i++)
@@ -358,8 +350,17 @@ static async Task<string?> PostVoteAsync(HttpClient? httpClient, Cookie? cookie)
 
         Console.WriteLine("Finished posting a vote");
 
-        File.WriteAllText(VoteRecordsFilePath, JsonSerializer.Serialize(records, jsonOptions));
-        File.WriteAllText(VoteConfigFilePath, JsonSerializer.Serialize(config, jsonOptions));
+        if (SaveToJsonFile(VoteRecordsFilePath, records, defaultJsonSerializerOptions)
+            is { isSuccess: false } rec)
+        {
+            Console.WriteLine($"Failed when saving records file: {rec.message}");
+        }
+
+        if (SaveToJsonFile(VoteConfigFilePath, config, defaultJsonSerializerOptions)
+            is { isSuccess: false } conf)
+        {
+            Console.WriteLine($"Failed when saving records file: {conf.message}");
+        }
 
         return voteId.GetValue<string>();
     }
