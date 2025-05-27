@@ -6,4 +6,5 @@ public static class AppDefaults
     public const string LoginUrl = $"{BaseUrl}/login";
     public const string RegisterUrl = $"{BaseUrl}/register";
     public const string BaseVoteUrl = $"{BaseUrl}/vote";
+    public const string ServerResponseHeaderCookieKey = "Set-Cookie";
 }
