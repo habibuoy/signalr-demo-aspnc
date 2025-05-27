@@ -11,6 +11,7 @@ using static SignalRDemo.Shared.AppDefaults;
 using static SignalRDemo.Shared.HttpHelper;
 using static SignalRDemo.Shared.FileHelper;
 
+#region Variables
 var services = new ServiceCollection();
 services.AddHttpClient();
 
@@ -44,7 +45,9 @@ var floodCountPrompter = new InputPrompter("Enter count: ",
 var maxRetryCountPrompter = new InputPrompter("Max retry count: ", inputEvaluator: IsNumber);
 
 var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+#endregion
 
+#region Main
 while (true)
 {
     string? voteId = voteIdPrompter.Prompt();
@@ -145,14 +148,16 @@ while (true)
     Console.WriteLine("Press any key to begin again");
     Console.ReadKey();
 }
+#endregion
 
+#region Functions
 static async Task FloodTaskAsync(int index, string voteId,
     IHttpClientFactory? httpClientFactory = null, int voteMaxRetry = 1)
 {
     // according to the official website,
     // we have to avoid using http client factory because we use cookies
     var httpClient = new HttpClient();
-    
+
     try
     {
         var credentialBody = JsonContent.Create(new
@@ -400,3 +405,4 @@ static Task<(Cookie? cookie, HttpStatusCode statusCode, string? message)> LoginC
 
     return LoginAsync(httpClient, creatorLoginRequestBody);
 }
+#endregion
