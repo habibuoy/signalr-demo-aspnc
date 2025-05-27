@@ -39,9 +39,10 @@ builder.Services.AddSqlite<ApplicationDbContext>(connectionString,
 builder.Services.AddAuthentication()
     .AddCookie(options =>
     {
-        options.ExpireTimeSpan = TimeSpan.FromSeconds(30);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(1);
         options.AccessDeniedPath = "/accessDenied";
         options.LoginPath = "/accessDenied";
+        options.SlidingExpiration = true;
     }
 );
 builder.Services.AddAuthorization();
@@ -126,7 +127,7 @@ app.MapPost("/login", async (LoginUserDto userDto,
     var authenticationProperties = new AuthenticationProperties
     {
         IssuedUtc = DateTime.UtcNow,
-        ExpiresUtc = DateTime.UtcNow.AddSeconds(10)
+        // ExpiresUtc = DateTime.UtcNow.AddSeconds(30)
     };
 
     await httpContext.SignInAsync(new ClaimsPrincipal(claimsIdentity), authenticationProperties);
