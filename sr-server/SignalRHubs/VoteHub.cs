@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server.Interfaces;
+using SignalRDemo.Server.Utils;
 using SignalRDemo.Shared;
 using SignalRDemo.Shared.Models;
 
@@ -36,8 +37,7 @@ public class VoteHub : Hub<IVoteHubClient>
 
         var userId = Context.UserIdentifier;
         var userName = Context.User?.FindFirstValue(ClaimTypes.Name);
-        logger.LogInformation("User {user} is trying to subscribe to vote {voteId}",
-            userName, voteId);
+        LogHelper.LogInformation(logger, $"User '{userName}' is trying to subscribe to vote '{voteId}'");
 
         try
         {
@@ -45,9 +45,8 @@ public class VoteHub : Hub<IVoteHubClient>
 
             if (vote == null)
             {
-                logger.LogInformation("Vote {voteId} does not exist",
-                    voteId);
-                return InvocationResult.Failed($"Vote {voteId} does not exist");
+                LogHelper.LogInformation(logger, $"User '{userName}' failed when subcribing from vote '{voteId}': It does not exist");
+                return InvocationResult.Failed($"Vote '{voteId}' does not exist");
             }
 
             var httpContext = Context.GetHttpContext();
@@ -62,20 +61,21 @@ public class VoteHub : Hub<IVoteHubClient>
                 }
 
                 await Clients.Users(userId!).ReceiveMessage(
-                    SendMessageProperties.ServerNotification($"You subscribed to vote {voteId}"));
+                    SendMessageProperties.ServerNotification($"You subscribed to vote '{voteId}'"));
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unknown error happened while user {user} subcribing vote {voteId}",
-                userId, voteId);
+            LogHelper.LogError(logger, $"Unknown error happened while user '{userName}' subcribing vote '{voteId}'", 
+                exception: ex);
         }
 
+        LogHelper.LogInformation(logger, $"User '{userName}' subscribed to vote '{voteId}'");
         return InvocationResult.Success();
     }
 
     [Authorize]
-    public async Task<InvocationResult> UnsubscribeVote(string voteId, 
+    public async Task<InvocationResult> UnsubscribeVote(string voteId,
         [FromServices] IVoteService voteService)
     {
         if (Context.User == null)
@@ -85,8 +85,7 @@ public class VoteHub : Hub<IVoteHubClient>
         
         var userId = Context.UserIdentifier;
         var userName = Context.User?.FindFirstValue(ClaimTypes.Name);
-        logger.LogInformation("User {user} is unsubscribing to vote {voteId}",
-            userName, voteId);
+        LogHelper.LogInformation(logger, $"User '{userName}' is trying to unsubscribe from vote '{voteId}'");
 
         try
         {
@@ -94,9 +93,8 @@ public class VoteHub : Hub<IVoteHubClient>
 
             if (vote == null)
             {
-                logger.LogInformation("Vote {voteId} does not exist",
-                    voteId);
-                return InvocationResult.Failed($"Vote {voteId} does not exist");
+                LogHelper.LogInformation(logger, $"User '{userName}' failed when unsubcribing from vote '{voteId}': It does not exist");
+                return InvocationResult.Failed($"Vote '{voteId}' does not exist");
             }
 
             var httpContext = Context.GetHttpContext();
@@ -111,17 +109,18 @@ public class VoteHub : Hub<IVoteHubClient>
                 }
 
                 await Clients.Users(userId!).ReceiveMessage(
-                    SendMessageProperties.ServerNotification($"You unsubscribed to vote {voteId}"));
+                    SendMessageProperties.ServerNotification($"You unsubscribed to vote '{voteId}'"));
             }
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, GetVoteGroupName(voteId));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unknown error happened while user {user} unsubcribing vote {voteId}",
-                userId, voteId);
+            LogHelper.LogError(logger, $"Unknown error happened while User '{userName}' unsubscribing from vote '{voteId}'",
+                exception: ex);
         }
 
+        LogHelper.LogInformation(logger, $"User '{userName}' unsubscribed from vote '{voteId}'");
         return InvocationResult.Success();
     }
 
