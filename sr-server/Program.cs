@@ -12,6 +12,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
+using SignalRDemo.Server.SignalRHubs;
+using SignalRDemo.Server.Utils.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 

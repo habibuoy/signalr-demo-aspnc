@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
+using SignalRDemo.Server.Utils.Extensions;
+using SignalRDemo.Server.SignalRHubs;
 
 namespace SignalRDemo.Server.Services;
 

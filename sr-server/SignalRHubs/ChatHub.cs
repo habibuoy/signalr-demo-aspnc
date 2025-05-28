@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Shared;
 
-namespace SignalRDemo.Server;
+namespace SignalRDemo.Server.SignalRHubs;
 
 public class ChatHub : Hub
 {

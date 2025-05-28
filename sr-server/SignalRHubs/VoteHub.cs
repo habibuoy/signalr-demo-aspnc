@@ -6,7 +6,7 @@ using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Shared;
 using SignalRDemo.Shared.Models;
 
-namespace SignalRDemo.Server;
+namespace SignalRDemo.Server.SignalRHubs;
 
 public class VoteHub : Hub<IVoteHubClient>
 {
