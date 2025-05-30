@@ -215,13 +215,13 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
 
     try
     {
-        var voteHubContext = httpContext.RequestServices.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
-        await voteHubContext.Clients.All.NotifyVoteCreated(vote.ToVoteCreatedProperties());
+        var notifier = httpContext.RequestServices.GetRequiredService<IVoteNotificationWriter>();
+        await notifier.WriteCreateAsync(vote);
     }
-    catch (InvalidOperationException ex)
+    catch (Exception ex)
     {
-        httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
-            .LogInformation("Error while hubbing: {msg}", ex.Message);
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Unexpected error happened while writing created vote notification");
     }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
@@ -306,7 +306,7 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     catch (Exception ex)
     {
         var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Unexpected error happened while writing vote notification");
+        logger.LogError(ex, "Unexpected error happened while writing updated vote notification");
     }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));

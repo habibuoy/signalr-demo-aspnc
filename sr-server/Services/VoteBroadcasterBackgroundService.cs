@@ -45,40 +45,73 @@ public class VoteBroadcasterBackgroundService : BackgroundService
             }
         }, CancellationToken.None);
 
-        while (!stoppingToken.IsCancellationRequested)
+        var readCreatedVoteNotificationsTask = Task.Run(async () =>
         {
-            var vote = await notificationReader.ReadAsync();
-            if (vote == null)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                continue;
+                var vote = await notificationReader.ReadCreatedNotificationAsync();
+                if (vote == null)
+                {
+                    continue;
+                }
+
+                updateWaitCounters.TryAdd(vote.Id, 0);
+
+                try
+                {
+                    var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
+                    await voteHubContext.Clients.All.NotifyVoteCreated(vote.ToVoteCreatedProperties());
+                }
+                catch (InvalidOperationException ex)
+                {
+                    logger.LogInformation("Error while hubbing: {msg}", ex.Message);
+                }
             }
+        }, CancellationToken.None);
 
-            string voteId = vote.Id;
-
-            if (!updateCounts.TryGetValue(voteId, out var count))
+        var readUpdatedVoteNotificationsTask = Task.Run(async () =>
+        {
+            while (!stoppingToken.IsCancellationRequested)
             {
-                updateCounts.Add(voteId, 0);
+                var vote = await notificationReader.ReadUpdatedNotificationAsync();
+                if (vote == null)
+                {
+                    continue;
+                }
+
+                string voteId = vote.Id;
+
+                if (!updateCounts.TryGetValue(voteId, out var count))
+                {
+                    updateCounts.Add(voteId, 0);
+                }
+
+                count = ++updateCounts[voteId];
+                var updateWaitCounter = updateWaitCounters.GetOrAdd(voteId, 0);
+                logger.LogInformation("update wait counter of vote {vote.Title} is {updateWaitCounter}",
+                    vote.Title, updateWaitCounter);
+
+                if (count < MaxReadCount
+                    && updateWaitCounter > 0) continue;
+
+                using var scope = serviceProvider.CreateScope();
+
+                var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
+
+                var v = await voteService.GetVoteByIdAsync(voteId);
+                updateCounts[voteId] = 0;
+                updateWaitCounters[voteId] += 1;
+
+                if (v == null) continue;
+
+                logger.LogInformation("notifying {vote.Title}", vote.Title);
+                var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
+                await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
+                    .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
             }
+        }, CancellationToken.None);
 
-            count = ++updateCounts[voteId];
-
-            if (count < MaxReadCount
-                && updateWaitCounters.GetOrAdd(voteId, 0) > 0) continue;
-
-            using var scope = serviceProvider.CreateScope();
-
-            var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
-
-            var v = await voteService.GetVoteByIdAsync(voteId);
-            updateCounts[voteId] = 0;
-            updateWaitCounters[voteId] += 1;
-
-            if (v == null) continue;
-
-            var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
-            await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
-                .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
-        }
+        await Task.WhenAll(readCreatedVoteNotificationsTask, readUpdatedVoteNotificationsTask);
     }
 
     public override Task StopAsync(CancellationToken cancellationToken)

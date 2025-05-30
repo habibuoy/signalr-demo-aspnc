@@ -4,5 +4,6 @@ namespace SignalRDemo.Server.Interfaces;
 
 public interface IVoteNotificationReader
 {
-    Task<Vote> ReadAsync();
+    Task<Vote> ReadCreatedNotificationAsync();
+    Task<Vote> ReadUpdatedNotificationAsync();
 }
