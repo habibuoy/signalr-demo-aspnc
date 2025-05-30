@@ -20,6 +20,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:3000")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
 builder.Services.AddSignalR();
 
 var connectionString = builder.Configuration.GetConnectionString("MainDb");
@@ -41,10 +52,13 @@ builder.Services.AddSqlite<ApplicationDbContext>(connectionString,
 builder.Services.AddAuthentication()
     .AddCookie(options =>
     {
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(1);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
         options.AccessDeniedPath = "/accessDenied";
         options.LoginPath = "/accessDenied";
         options.SlidingExpiration = true;
+        options.Cookie.Name = "auth";
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.None; // TODO: Change back to lax if the web client is moved to same project
     }
 );
 builder.Services.AddAuthorization();
@@ -73,6 +87,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
