@@ -5,8 +5,11 @@ namespace SignalRDemo.Server.Datas;
 
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options) { }
+    private readonly ILogger<ApplicationDbContext> logger;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options,
+        ILogger<ApplicationDbContext> logger)
+        : base(options) { this.logger = logger; }
 
     public DbSet<Vote> Votes { get; set; }
     public DbSet<VoteSubject> VoteSubjects { get; set; }
@@ -33,5 +36,27 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<VoteSubject>().ToTable("VoteSubjects");
         modelBuilder.Entity<VoteSubjectInput>().ToTable("VoteInputs");
+
+        foreach (var property in modelBuilder.Model.GetEntityTypes()
+            .SelectMany(entity => entity.GetProperties()))
+        {
+            var propInfo = property.PropertyInfo;
+
+            if (property.ClrType != typeof(DateTime) && property.ClrType != typeof(DateTime?)
+                || propInfo == null
+                || propInfo.GetCustomAttributes(true).Any(attr => attr is NotUtcAttribute))
+            {
+                continue;
+            }
+
+            if (property.ClrType == typeof(DateTime))
+            {
+                property.SetValueConverter(typeof(DateTimeUtcConverter));
+            }
+            else if (property.ClrType == typeof(DateTime?))
+            {
+                property.SetValueConverter(typeof(NullableDateTimeUtcConverter));
+            }
+        }
     }
 }
