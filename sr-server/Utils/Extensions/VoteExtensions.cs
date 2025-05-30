@@ -19,7 +19,7 @@ public static class VoteExtensions
             {
                 Id = subject.Id,
                 Name = subject.Name,
-                CurrentCount = count
+                VoteCount = count
             });
 
             totalCount += count;
