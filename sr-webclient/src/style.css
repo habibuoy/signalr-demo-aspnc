@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  @apply bg-gray-50;
+}
+
+.vote-card {
+  @apply bg-white rounded-lg shadow-md p-4 mx-2;
+
+  min-width: 200px;
+  height: 250px;
+}
+
+.vote-card.interactable {
+  @apply cursor-pointer transform transition-transform hover:scale-105;  
+}
+
+.vote-list {
+  @apply flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 pt-4;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.vote-list::-webkit-scrollbar {
+  @apply h-2;
+}
+
+.vote-list::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+.vote-list::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+.vote-subject {
+  @apply bg-white rounded-lg shadow-md p-4 mb-4 cursor-pointer transition-all hover:shadow-lg;
+}
