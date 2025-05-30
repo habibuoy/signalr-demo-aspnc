@@ -45,6 +45,8 @@ public static class VoteExtensions
             Id = vote.Id,
             Title = vote.Title,
             CreatedTime = vote.CreatedTime,
+            MaximumCount = vote.MaximumCount,
+            ExpiredTime = vote.ExpiredTime,
             Subjects = vote.Subjects.Select(s => new VoteSubjectProperties()
             {
                 Id = s.Id,
