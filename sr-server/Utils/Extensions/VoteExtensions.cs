@@ -30,8 +30,8 @@ public static class VoteExtensions
             Id = vote.Id,
             Title = vote.Title,
             Subjects = subjects,
-            CreatedTime = vote.CreatedTime.ToLocalTime(),
-            ExpiredTime = vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value.ToLocalTime() : null,
+            CreatedTime = vote.CreatedTime,
+            ExpiredTime = vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value : null,
             MaximumCount = vote.MaximumCount,
             CurrentTotalCount = totalCount,
             CreatorId = vote.CreatorId
