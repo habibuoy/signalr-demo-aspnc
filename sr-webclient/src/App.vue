@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as signalR from '@microsoft/signalr'
 import { Vote, VoteSubject } from './vote'
 
@@ -190,6 +190,7 @@ async function loadVotes() {
 
   for (let i = 0; i < mappedVotes.length; i++) {
     votes.value.push(mappedVotes[i])
+    await nextTick()
     scrollToEnd()
     await delay(250)
   }
