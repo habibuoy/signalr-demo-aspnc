@@ -1,9 +1,10 @@
 <template>
+    <Navbar :onBeforeLogout="onBeforeLogout" />
     <div v-if="isLoading" class="flex items-center justify-center min-h-screen">
         <div class="text-gray-600">Loading...</div>
     </div>
     <div v-else class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-[60%]">
+        <div class="mx-auto w-full max-w-[60%] pt-20"> <!-- Added pt-20 for navbar space -->
             <!-- Horizontal Vote List -->
             <div class="mb-8 h-[33vh]">
                 <div class="vote-list" ref="voteList">
@@ -17,8 +18,10 @@
                             {{ vote.subjects.length }} subjects
                         </div>
                         <div class="text-sm text-black-500">
-                            {{ vote.totalCount }} <span v-if="vote.maximumCount !== null"><strong>/ {{ vote.maximumCount
-                                    }} </strong></span> Total Votes
+                            {{ vote.totalCount }} 
+                            <span v-if="vote.maximumCount !== null">
+                                <strong>/ {{ vote.maximumCount }} </strong>
+                            </span> Total Votes
                         </div>
                         <div class="text-sm text-black-500">
                             <span v-if="!vote.expiredTime">No end time</span>
@@ -82,6 +85,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
 import { Vote, VoteSubject } from './vote'
 
@@ -101,7 +105,6 @@ const interactionTimeout = 2500 // in milliseconds
 // Setup SignalR connection
 const connection = new signalR.HubConnectionBuilder()
     .withUrl('https://localhost:7000/watchvote')
-    .withAutomaticReconnect()
     .build()
 
 // Handle SignalR messages
@@ -120,7 +123,7 @@ connection.onreconnected((err) => {
 
 connection.onclose(async (err) => {
     console.log("Connection closed", err)
-    await delay(2000)
+    await delay(1000)
     startSignalRConnection()
 })
 
@@ -130,7 +133,6 @@ async function startSignalRConnection() {
         console.log("SignalR connected")
     } catch (err) {
         console.error("Error while starting SignalR connection:", err)
-        setTimeout(() => startSignalRConnection(), 5000)
     }
 }
 
@@ -138,7 +140,7 @@ async function startSignalRConnection() {
 onMounted(async () => {
     try {
         await login()
-        await connection.start()
+        await startSignalRConnection()
         loadVotes()
     } catch (error) {
         console.error("Failed to initialize:", error)
@@ -349,7 +351,7 @@ async function unsubscribeVote(vote) {
     try {
         var result = await connection.invoke("UnsubscribeVote", vote.id)
         // if (result) {
-        //   console.log(`Unsubscribed from vote ${vote.title} (id: ${vote.id})`)
+        //     console.log(`Unsubscribed from vote ${vote.title} (id: ${vote.id})`)
         // }
 
         return result
@@ -391,4 +393,36 @@ function updateSelectedVoteRemainingTime() {
 async function castVote(subjectId) {
 
 }
+const isLoggingOut = ref(false)
+
+async function onBeforeLogout() {
+  if (isLoggingOut.value) return
+  isLoggingOut.value = true
+  // Clean up: unsubscribe, clear interval, disconnect SignalR
+  console.log("Cleaning votes")
+  if (selectedVote.value) {
+    await unsubscribeVote(selectedVote.value)
+  }
+  if (currentRemainingTimeIntervalId.value) {
+    clearInterval(currentRemainingTimeIntervalId.value)
+    currentRemainingTimeIntervalId.value = null
+  }
+  if (connection) {
+    console.log("Ending Signal R")
+    connection.off("NotifyVoteCreated")
+    connection.off("NotifyVoteUpdated")
+    connection._closedCallbacks = []
+    if (connection.state === signalR.HubConnectionState.Connected) {
+      await connection.stop()
+    }
+    console.log("Signal R ended")
+  }
+}
+
+onUnmounted(async () => {
+    if (voteList.value) {
+        voteList.value.removeEventListener('mousedown', handleUserInteraction)
+        voteList.value.removeEventListener('touchstart', handleUserInteraction)
+    }
+})
 </script>

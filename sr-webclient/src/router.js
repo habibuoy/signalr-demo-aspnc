@@ -17,7 +17,6 @@ const router = createRouter({
 // Check if a cookie named 'auth' exists
 function isAuthenticated() {
     const valid = document.cookie.split(';').some((c) => c.trim().startsWith('auth='))
-    console.log(`is authenticated: ${valid}, cookie: ${document.cookie}`)
     return valid
 }
 
