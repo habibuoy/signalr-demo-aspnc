@@ -57,8 +57,10 @@ builder.Services.AddAuthentication()
         options.LoginPath = "/accessDenied";
         options.SlidingExpiration = true;
         options.Cookie.Name = "auth";
+        // TODO: Change below properties back to secure ones if the web client is moved to same project
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.None; // TODO: Change back to lax if the web client is moved to same project
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.HttpOnly = false;
     }
 );
 builder.Services.AddAuthorization();
