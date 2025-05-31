@@ -4,7 +4,7 @@
         <div class="text-gray-600">Loading...</div>
     </div>
     <div v-else class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-[60%] pt-20"> <!-- Added pt-20 for navbar space -->
+        <div class="mx-auto w-full max-w-[60%] pt-20">
             <!-- Horizontal Vote List -->
             <div class="mb-8 h-[33vh]">
                 <div class="vote-list" ref="voteList">
