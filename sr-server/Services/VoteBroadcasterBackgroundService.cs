@@ -88,8 +88,6 @@ public class VoteBroadcasterBackgroundService : BackgroundService
 
                 count = ++updateCounts[voteId];
                 var updateWaitCounter = updateWaitCounters.GetOrAdd(voteId, 0);
-                logger.LogInformation("update wait counter of vote {vote.Title} is {updateWaitCounter}",
-                    vote.Title, updateWaitCounter);
 
                 if (count < MaxReadCount
                     && updateWaitCounter > 0) continue;
@@ -103,8 +101,7 @@ public class VoteBroadcasterBackgroundService : BackgroundService
                 updateWaitCounters[voteId] += 1;
 
                 if (v == null) continue;
-
-                logger.LogInformation("notifying {vote.Title}", vote.Title);
+                
                 var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
                 await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
                     .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
