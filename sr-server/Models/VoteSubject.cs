@@ -6,6 +6,8 @@ public class VoteSubject
     public string VoteId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
 
+    public Guid? Version { get; set; }
+
     public List<VoteSubjectInput> Voters { get; set; } = new();
 
     // navigational

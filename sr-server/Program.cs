@@ -66,7 +66,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IUserService, UserService>();
 
-builder.Services.AddTransient<IVoteService, DbVoteService>();
+builder.Services.AddScoped<IVoteService, DbVoteService>();
 builder.Services.AddSingleton<IHubConnectionManager, HubConnectionManager>();
 builder.Services.AddSingleton<IHubConnectionReader, HubConnectionManager>();
 var voteNotification = new VoteNotification();
@@ -245,7 +245,8 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
 }).RequireAuthorization();
 
 app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
-    HttpContext httpContext, [FromServices] IVoteService voteService) =>
+    HttpContext httpContext, [FromServices] IVoteService voteService,
+    [FromServices] ILogger<Program> logger) =>
 {
     if (inputVote == null)
     {
@@ -257,53 +258,69 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
         return Results.LocalRedirect("/accessDenied");
     }
 
-    var vote = await voteService.GetVoteByIdAsync(inputVote.VoteId);
-
-    if (vote == null)
-    {
-        return Results.NotFound(ResponseObject.NotFound());
-    }
-
-    var inputs = vote.Subjects.SelectMany(s => s.Voters);
-    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-    var email = user.FindFirstValue(ClaimTypes.Email);
-    if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
-    {
-        return Results.Conflict(ResponseObject.Create($"User {email} already have given vote on vote id {vote.Id}"));
-    }
-
-    if (vote.IsClosed()
-        || !vote.CanVote())
-    {
-        return Results.Json(ResponseObject.Create("Vote has been closed or exceeded maximum count"),
-            statusCode: StatusCodes.Status403Forbidden);
-    }
-
-    if (vote.Subjects.FirstOrDefault(s => s.Id == inputVote.SubjectId) is not VoteSubject subject)
-    {
-        return Results.NotFound(ResponseObject.NotFound());
-    }
-
     var success = false;
 
-    int remainingRetry = 3;
+    int maxRetry = 3;
+    int remainingRetry = maxRetry;
 
+    Vote vote = null!;
+    string? email = null;
     while (!success && remainingRetry > 0)
     {
         try
         {
-            var result = await voteService.GiveVoteAsync(inputVote.SubjectId.ToString(), userId);
+            if (remainingRetry < maxRetry)
+            {
+                // create a new scope for each retry
+                using var scope = httpContext.RequestServices.CreateScope();
+                voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
+            }
+
+            vote = (await voteService.GetVoteByIdAsync(inputVote.VoteId))!;
+
+            if (vote == null)
+            {
+                return Results.NotFound(ResponseObject.NotFound());
+            }
+
+            var inputs = vote.Subjects.SelectMany(s => s.Voters);
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            email = user.FindFirstValue(ClaimTypes.Email);
+            if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
+            {
+                return Results.Conflict(ResponseObject.Create($"User {email} already have given vote on vote id {vote.Id}"));
+            }
+
+            if (vote.IsClosed()
+                || !vote.CanVote())
+            {
+                return Results.Json(ResponseObject.Create("Vote has been closed or exceeded maximum count"),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            if (vote.Subjects.FirstOrDefault(s => s.Id == inputVote.SubjectId) is not VoteSubject subject)
+            {
+                return Results.NotFound(ResponseObject.NotFound());
+            }
+
+            var result = await voteService.GiveVoteAsync(subject.Id.ToString(), userId);
             if (!result)
             {
                 remainingRetry--;
             }
             else
             {
+                if (remainingRetry < maxRetry)
+                {
+                    logger.LogInformation("User {email} succeeded giving vote after retrying for {retryCount} time(s)",
+                        email, maxRetry - remainingRetry);
+                }
                 success = true;
             }
         }
         catch (DbUpdateConcurrencyException)
         {
+            // logger.LogWarning("DB Concurrency happened while {user} giving vote for {vote.Id}", email, vote!.Id);
             remainingRetry--;
         }
 
@@ -312,6 +329,8 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
 
     if (!success)
     {
+        logger.LogWarning("User {email} failed giving vote on vote {v.title} ({v.id}) after retrying for {maxRetry}",
+            email, vote.Title, vote.Id, remainingRetry);
         return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
     }
 
@@ -322,7 +341,6 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     }
     catch (Exception ex)
     {
-        var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Unexpected error happened while writing updated vote notification");
     }
 

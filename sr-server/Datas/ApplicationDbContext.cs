@@ -34,6 +34,10 @@ public class ApplicationDbContext : DbContext
             .WithOne(i => i.VoteSubject)
             .HasForeignKey(i => i.SubjectId);
 
+        modelBuilder.Entity<VoteSubject>()
+            .Property(v => v.Version)
+            .IsConcurrencyToken();
+
         modelBuilder.Entity<VoteSubject>().ToTable("VoteSubjects");
         modelBuilder.Entity<VoteSubjectInput>().ToTable("VoteInputs");
 

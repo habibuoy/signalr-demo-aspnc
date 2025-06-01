@@ -230,6 +230,7 @@ public class DbVoteService : IVoteService
                     VoterId = userId,
                     InputTime = DateTime.UtcNow
                 });
+                subject.Version = Guid.CreateVersion7();
                 await dbContext.SaveChangesAsync();
                 return true;
             }
@@ -241,7 +242,7 @@ public class DbVoteService : IVoteService
             switch (ex)
             {
                 case DbUpdateConcurrencyException:
-                    logger.LogInformation("Db concurrency error happened while updating vote subject {id}: {msg}",
+                    logger.LogWarning("Db concurrency error happened while updating vote subject {id}: {msg}",
                         subjectId, ex.Message);
                     var conEx = ex as DbUpdateConcurrencyException;
                     foreach (var entry in conEx!.Entries)
@@ -262,11 +263,11 @@ public class DbVoteService : IVoteService
                     }
                     throw;
                 case DbUpdateException:
-                    logger.LogInformation("Db error happened while updating vote subject {id}: {msg}",
+                    logger.LogWarning("Db error happened while updating vote subject {id}: {msg}",
                         subjectId, ex.Message);
                     break;
                 case OperationCanceledException:
-                    logger.LogInformation("Task cancelled while updating vote subject {id}: {msg}",
+                    logger.LogWarning("Task cancelled while updating vote subject {id}: {msg}",
                         subjectId, ex.Message);
                     break;
             }
