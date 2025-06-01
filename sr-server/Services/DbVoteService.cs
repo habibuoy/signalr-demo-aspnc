@@ -274,4 +274,22 @@ public class DbVoteService : IVoteService
             return false;
         }
     }
+
+    public async Task<bool> DeleteVoteAsync(Vote vote)
+    {
+        ArgumentNullException.ThrowIfNull(vote);
+
+        try
+        {
+            dbContext.Remove(vote);
+            var result = await dbContext.SaveChangesAsync();
+            return result > 0;
+        }
+        catch (DbUpdateException ex)
+        {
+            logger.LogInformation(ex, "DB update error while deleting vote {title} ({id})",
+                vote.Title, vote.Id);
+            return false;
+        }
+    }
 }

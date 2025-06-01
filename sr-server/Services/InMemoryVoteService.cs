@@ -97,4 +97,11 @@ public class InMemoryVoteService : IVoteService
         vote.GiveVote(sid, userId);
         return Task.FromResult(true);
     }
+
+    public Task<bool> DeleteVoteAsync(Vote vote)
+    {
+        ArgumentNullException.ThrowIfNull(vote);
+
+        return Task.FromResult(votes.TryRemove(vote.Id, out _));
+    }
 }

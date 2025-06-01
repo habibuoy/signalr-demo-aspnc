@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server;
 using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
@@ -328,6 +327,30 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
+}).RequireAuthorization();
+
+app.MapDelete("/vote/{id}", async (string? id,
+    [FromServices] IVoteService voteService) =>
+{
+    if (id == null)
+    {
+        return Results.BadRequest(ResponseObject.Create("Please provide a valid Id"));
+    }
+
+    var vote = await voteService.GetVoteByIdAsync(id);
+    if (vote == null)
+    {
+        return Results.NotFound(ResponseObject.NotFound());
+    }
+
+    var result = await voteService.DeleteVoteAsync(vote);
+    if (!result)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+
+    return Results.Ok(ResponseObject.Success(null!));
+
 }).RequireAuthorization();
 
 app.Run();

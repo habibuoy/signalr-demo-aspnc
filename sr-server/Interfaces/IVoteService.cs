@@ -16,13 +16,20 @@ public interface IVoteService
     /// <summary>
     /// Update the vote asynchronously
     /// </summary>
-    /// <returns>A boolean to indicate whether the process is success or not</returns>
+    /// <returns>A boolean to indicate whether the process is successful or not</returns>
     /// <exception cref="DbUpdateConcurrencyException"></exception>
     Task<bool> UpdateVoteAsync(string voteId, Vote vote);
     /// <summary>
     /// Give vote asynchronously
     /// </summary>
-    /// <returns>A boolean to indicate whether the process is success or not</returns>
+    /// <returns>A boolean to indicate whether the process is successful or not</returns>
     /// <exception cref="DbUpdateConcurrencyException"></exception>
     Task<bool> GiveVoteAsync(string subjectId, string? userId);
+    /// <summary>
+    /// Delete vote asynchronously
+    /// </summary>
+    /// <param name="vote">Vote object</param>
+    /// <returns>A boolean to indicate whether the process is successful or not</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    Task<bool> DeleteVoteAsync(Vote vote);
 }
