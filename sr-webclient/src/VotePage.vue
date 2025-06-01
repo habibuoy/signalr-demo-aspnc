@@ -4,9 +4,9 @@
         <div class="text-gray-600">Loading...</div>
     </div>
     <div v-else class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-[60%] pt-20">
+        <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-20">
             <!-- Horizontal Vote List -->
-            <div class="mb-8 h-[33vh]">
+            <div class="mb-8 lg:h-[33vh] sm:h-[40vh]">
                 <div class="vote-list" ref="voteList">
                     <div v-for="(vote, index) in votes" :key="vote.id" class="vote-card animate-vertical-slide-in"
                         :id="index" :class="{
@@ -32,9 +32,8 @@
                     </div>
                 </div>
             </div>
-
             <!-- Detailed Vote View -->
-            <div v-if="selectedVote" class="animate-slide-in">
+            <div v-if="selectedVote" class="animate-slide-in bg-white rounded-lg shadow-sm p-6 mt-4">
                 <h2 class="text-2xl font-bold mb-6">{{ selectedVote.title }}</h2>
 
                 <div class="space-y-4 mb-6">
@@ -51,12 +50,11 @@
                         No end time
                     </div>
                 </div>
-
                 <div class="space-y-4">
                     <div v-for="subject in selectedVote.subjects" :key="subject.id" class="vote-subject">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4 class="text-lg font-medium">{{ subject.name }}</h4>
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-lg font-medium truncate">{{ subject.name }}</h4>
                                 <div class="mt-2">
                                     <div class="w-full bg-gray-200 rounded-full h-2">
                                         <div class="bg-blue-500 h-2 rounded-full transition-all duration-500"
@@ -68,7 +66,7 @@
                                 </div>
                             </div>
                             <button v-if="!hasVoted && selectedVote.canVote()" @click="castVote(subject.id)"
-                                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shrink-0">
                                 Vote
                             </button>
                         </div>

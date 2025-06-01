@@ -8,10 +8,16 @@
 
 .vote-card {
   @apply bg-white rounded-lg shadow-md p-4 mx-2;
-
+  
   min-width: 200px;
   max-width: 200px;
   height: 250px;
+
+  @media (max-width: 640px) {
+    min-width: 160px;
+    max-width: 160px;
+    height: 200px;
+  }
 }
 
 .vote-card.interactable {
@@ -19,10 +25,12 @@
 }
 
 .vote-list {
-  @apply flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 pt-4;
+  @apply flex overflow-x-auto gap-4 pb-4 px-4 pt-4;
   scrollbar-width: thin;
   scroll-behavior: smooth;
   min-width: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .vote-list::-webkit-scrollbar {
