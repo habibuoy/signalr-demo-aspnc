@@ -65,9 +65,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <button v-if="!hasVoted && selectedVote.canVote()" @click="castVote(subject.id)"
-                                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shrink-0">
-                                Vote
+                            <button v-if="selectedVote.canVote() && !getVoteInput(selectedVote.id)" 
+                                @click="inputVote(selectedVote.id, subject.id)"
+                                class="vote-button"
+                                :class="{'opacity-50 cursor-not-allowed': inputtingVote}">
+                                {{ inputtingVote ? "Voting..." : "Vote" }}
                             </button>
                         </div>
                     </div>
@@ -85,16 +87,18 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
-import { Vote, VoteSubject } from './vote'
+import { Vote, VoteInput, VoteSubject } from './vote'
 
 const votes = ref([])
 const selectedVote = ref(null)
-const hasVoted = ref(false)
 const voteList = ref(null)
 const isLoading = ref(true)
 const isListInteractable = ref(false);
 const selectedVoteRemainingTime = ref("");
 const currentRemainingTimeIntervalId = ref(null)
+const inputtingVote = ref(null)
+const isLoggingOut = ref(false)
+const voteInputs = ref(null)
 
 // Track user interaction with the vote list
 const hasRecentInteraction = ref(false)
@@ -139,6 +143,7 @@ onMounted(async () => {
     try {
         await login()
         await startSignalRConnection()
+        await updateVoteInputs()
         loadVotes()
     } catch (error) {
         console.error("Failed to initialize:", error)
@@ -215,6 +220,76 @@ async function onVoteListAnimationEnded(anim) {
         isListInteractable.value = true
         voteList.value.removeEventListener("animationend", onVoteListAnimationEnded)
     }
+}
+
+async function updateVoteInputs() {
+    return fetch("https://localhost:7000/vote/inputs", {
+        credentials: 'include'
+    })
+        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+        .then(response => {
+            if (!response.isSuccess) {
+                if (response.json.message) {
+                    console.log("Failed when fetching vote inputs: ", response.message)
+                    return
+                }
+            }
+            
+            if (!response.json.result) {
+                console.log("Succeeded fetching vote inputs but no result object: ", response.message)
+                return
+            }
+            
+            const result = response.json.result
+            voteInputs.value = result.map((inp) => new VoteInput(
+                inp.id, inp.voteId, inp.voteTitle, inp.subjectId, inp.subjectName, inp.inputTime
+            ))
+        })
+        .catch(error => console.error("Error happened while updating vote inputs", error))
+}
+
+async function inputVote(voteId, subjectId) {
+    inputtingVote.value = { voteId: voteId, subjectId: subjectId }
+
+    return fetch(`https://localhost:7000/vote?voteId=${voteId}&subjectId=${subjectId}`, {
+        method: "POST",
+        credentials: "include"
+    })
+        .then(async response => {
+            const jsonBody = await response.json()
+            if (!response.ok) {
+                if (jsonBody.message) {
+                    console.log(`Failed when inputting vote (Code ${result.status}). Message: ${jsonBody.message}`)
+                    return
+                }
+            }
+        })
+        .catch(error => console.error("Error happened while inputting vote", error))
+        .finally(async () => {
+            await updateVoteInputs()
+            inputtingVote.value = null
+        })
+
+    // try
+    // {
+    //     const result = await fetch(`https://localhost:7000/vote?voteId=${voteId}&subjectId=${subjectId}`, {
+    //         method: "POST",
+    //         credentials: "include"
+    //     })
+        
+    //     const jsonBody = await result.json()
+    //     if (!result.ok) {
+    //         console.log(`Failed when inputting vote (Code ${result.status}). Message: ${jsonBody.message}`)
+    //     }
+    // }
+    // catch (error)
+    // {
+    //     console.error("Error happened while inputting vote", error)
+    // }
+
+    // await updateVoteInputs()
+
+    // inputtingVote.value = null
 }
 
 // Watch voteList ref and setup event listeners
@@ -359,6 +434,11 @@ async function unsubscribeVote(vote) {
     }
 }
 
+function getVoteInput(voteId) {
+    if (!voteInputs.value) return null
+    return voteInputs.value.find((v) => v.voteId === voteId)
+}
+
 function calculatePercentage(voteCount) {
     if (!selectedVote.value) return 0
     const totalVotes = selectedVote.value.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
@@ -387,11 +467,6 @@ function updateSelectedVoteRemainingTime() {
     selectedVoteRemainingTime.value = formatTimeRemaining(selectedVote.value.expiredTime);
     // console.log(`Selected vote ${selectedVote.value.title} remaining time: ${selectedVoteRemainingTime.value}`)
 }
-
-async function castVote(subjectId) {
-
-}
-const isLoggingOut = ref(false)
 
 async function onBeforeLogout() {
   if (isLoggingOut.value) return

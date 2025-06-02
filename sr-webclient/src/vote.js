@@ -1,4 +1,4 @@
-export { Vote, VoteSubject}
+export { Vote, VoteSubject, VoteInput}
 
 class Vote {
   totalCount = 0;
@@ -16,7 +16,7 @@ class Vote {
       || Date.parse(this.expiredTime) > Date.now()
     )
     && (!this.maximumCount
-      || this.maximumCount < this.subjects.reduce((acc, e) => acc + e, 0)
+      || this.totalCount < this.maximumCount
     )
   }
 }
@@ -26,5 +26,16 @@ class VoteSubject {
     this.id = id
     this.name = name
     this.voteCount = voteCount
+  }
+}
+
+class VoteInput {
+  constructor(id, voteId, voteTitle, subjectId, subjectName, inputTime) {
+    this.id = id
+    this.voteId = voteId
+    this.voteTitle = voteTitle
+    this.subjectId = subjectId
+    this.subjectName = subjectName
+    this.inputTime = inputTime
   }
 }
