@@ -252,7 +252,7 @@ public class VoteClient
     {
         if (ex != null)
         {
-            Console.WriteLine($"({nameof(VoteClient)}): Connection was closed due to connection error: {ex.Message}");
+            Console.WriteLine($"({nameof(VoteClient)}): Connection was closed due to connection error: {ex}");
         }
         else
         {

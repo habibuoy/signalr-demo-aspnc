@@ -33,6 +33,11 @@ var floodTypePrompter = new InputPrompter("Choose (1/2):",
     "+++++++++++",
     ["1", "2"]);
 
+var voteEndpointTypePrompter = new InputPrompter(
+    "Choose (1/2): ",
+    "Choose endpoint type:\n1.Normal vote\n2.Queue vote",
+    ["1", "2"]);
+
 var voteIdPrompter = new InputPrompter(
     "Input Vote Id: ",
     "Target Vote Id (Leave empty to let the app gets it)",
@@ -51,6 +56,7 @@ var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>()
 while (true)
 {
     string? voteId = voteIdPrompter.Prompt();
+    int endpointType = int.Parse(voteEndpointTypePrompter.Prompt());
 
     if (string.IsNullOrEmpty(voteId))
     {
@@ -126,7 +132,7 @@ while (true)
             {
                 try
                 {
-                    await FloodTaskAsync(index, voteId, httpClientFactory, maxRetryCount);
+                    await FloodTaskAsync(index, voteId, endpointType, httpClientFactory, maxRetryCount);
                 }
                 finally
                 {
@@ -151,7 +157,7 @@ while (true)
 #endregion
 
 #region Functions
-static async Task FloodTaskAsync(int index, string voteId,
+static async Task FloodTaskAsync(int index, string voteId, int endpointType,
     IHttpClientFactory? httpClientFactory = null, int voteMaxRetry = 1)
 {
     // according to the official website,
@@ -227,8 +233,11 @@ static async Task FloodTaskAsync(int index, string voteId,
 
         while (!isSuccessVote && retryRemaining > 0)
         {
+            string endpoint = endpointType == 1
+                ? $"{BaseVoteUrl}?voteId={voteId}&subjectId={subjectId}"
+                : $"{BaseVoteUrl}/queue?voteId={voteId}&subjectId={subjectId}";
             var voteSubjectResponse = await SendHttpRequestAsync(httpClient,
-                $"{BaseVoteUrl}?voteId={voteId}&subjectId={subjectId}",
+                endpoint,
                 HttpMethod.Post,
                 cookie: loginResponse.cookie);
 
