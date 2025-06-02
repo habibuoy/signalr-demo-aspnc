@@ -3,18 +3,33 @@ using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.SignalRHubs;
+using SignalRDemo.Server.Models;
 
 namespace SignalRDemo.Server.Services;
 
 public class VoteBroadcasterBackgroundService : BackgroundService
 {
-    private const int MaxReadCount = 10;
+    // Number of updated vote being held before a Vote Updated notification
+    // is sent to all vote update subscribers.
+    private const int MaxUpdateHoldCount = 1;
+
+    // Number of time in seconds where a Vote's Update notification will be sent
+    // regardless of its UpdateHoldCount has reached the max value or not.
+    // For example, if current update count of vote id xxx is 3 with maximum
+    // update hold count of 10, and the wait time of that Vote has reached 0, then the notification
+    // will be sent, and both wait time and hold count will be reset.
+    private const int UpdateWaitTime = 1;
+
+    // Number of time in milliseconds of when the votes that are being held in the update hold count
+    // and update time counters dictionaries will be checked and removed if necessary
+    // so the dictionaries are always free from unnecessary votes (expired or exceeded maximum count)
+    private const int HeldVotesRemovalCheckInterval = 5000;
 
     private readonly IVoteNotificationReader notificationReader;
     private readonly IServiceProvider serviceProvider;
     private readonly ILogger<VoteBroadcasterBackgroundService> logger;
-    private readonly Dictionary<string, int> updateCounts = new();
-    private readonly ConcurrentDictionary<string, int> updateWaitCounters = new();
+    private readonly ConcurrentDictionary<string, int> updateHoldCounts = new();
+    private readonly ConcurrentDictionary<string, int> updateWaitTimeCounters = new();
 
     public VoteBroadcasterBackgroundService(IVoteNotificationReader notificationReader,
         IServiceProvider serviceProvider,
@@ -27,23 +42,52 @@ public class VoteBroadcasterBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _ = Task.Run(async () =>
+        var waitCountersUpdaterTask = Task.Run(async () =>
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                foreach (var waitCounter in updateWaitCounters)
+                foreach (var waitCounter in updateWaitTimeCounters)
                 {
                     var id = waitCounter.Key;
                     var value = waitCounter.Value;
 
                     if (value <= 0) continue;
 
-                    updateWaitCounters[id] = Math.Min(0, value - 1);
+                    updateWaitTimeCounters[id] = Math.Min(0, value - 1);
                 }
 
                 await Task.Delay(1000);
             }
         }, CancellationToken.None);
+
+        var heldVotesRemoverTask = Task.Run(async () =>
+        {
+            await Task.Delay(HeldVotesRemovalCheckInterval);
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                foreach (var voteId in updateHoldCounts.Keys)
+                {
+                    var scope = serviceProvider.CreateScope();
+                    var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
+
+                    var vote = await voteService.GetVoteByIdAsync(voteId);
+                    if (vote == null)
+                    {
+                        RemoveVoteFromDictionaries(voteId);
+                        continue;
+                    }
+
+                    if (vote.CanVote())
+                    {
+                        continue;
+                    }
+
+                    RemoveVoteFromDictionaries(voteId);
+                }
+
+                await Task.Delay(HeldVotesRemovalCheckInterval);
+            }
+        });
 
         var readCreatedVoteNotificationsTask = Task.Run(async () =>
         {
@@ -55,7 +99,7 @@ public class VoteBroadcasterBackgroundService : BackgroundService
                     continue;
                 }
 
-                updateWaitCounters.TryAdd(vote.Id, 0);
+                updateWaitTimeCounters.TryAdd(vote.Id, 0);
 
                 try
                 {
@@ -81,15 +125,10 @@ public class VoteBroadcasterBackgroundService : BackgroundService
 
                 string voteId = vote.Id;
 
-                if (!updateCounts.TryGetValue(voteId, out var count))
-                {
-                    updateCounts.Add(voteId, 0);
-                }
+                var count = updateHoldCounts.GetOrAdd(voteId, 0) + 1;
+                var updateWaitCounter = updateWaitTimeCounters.GetOrAdd(voteId, 0);
 
-                count = ++updateCounts[voteId];
-                var updateWaitCounter = updateWaitCounters.GetOrAdd(voteId, 0);
-
-                if (count < MaxReadCount
+                if (count < MaxUpdateHoldCount
                     && updateWaitCounter > 0) continue;
 
                 using var scope = serviceProvider.CreateScope();
@@ -97,18 +136,32 @@ public class VoteBroadcasterBackgroundService : BackgroundService
                 var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
 
                 var v = await voteService.GetVoteByIdAsync(voteId);
-                updateCounts[voteId] = 0;
-                updateWaitCounters[voteId] += 1;
+                updateHoldCounts[voteId] = 0;
+                updateWaitTimeCounters[voteId] = UpdateWaitTime;
 
                 if (v == null) continue;
-                
+
                 var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
                 await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
                     .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
+
+                if (!vote.CanVote())
+                {
+                    RemoveVoteFromDictionaries(voteId);
+                }
             }
         }, CancellationToken.None);
 
-        await Task.WhenAll(readCreatedVoteNotificationsTask, readUpdatedVoteNotificationsTask);
+        await Task.WhenAll(
+            waitCountersUpdaterTask,
+            readCreatedVoteNotificationsTask,
+            readUpdatedVoteNotificationsTask);
+    }
+
+    private void RemoveVoteFromDictionaries(string voteId)
+    {
+        updateHoldCounts.Remove(voteId, out _);
+        updateWaitTimeCounters.Remove(voteId, out _);
     }
 
     public override Task StopAsync(CancellationToken cancellationToken)

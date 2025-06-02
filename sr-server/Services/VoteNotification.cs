@@ -14,6 +14,7 @@ public class VoteNotification : IVoteNotificationReader, IVoteNotificationWriter
         createdVoteChannel = Channel.CreateUnbounded<Vote>();
         updatedVoteChannel = Channel.CreateUnbounded<Vote>();
     }
+    
     public async Task<Vote> ReadCreatedNotificationAsync()
     {
         while (await createdVoteChannel.Reader.WaitToReadAsync())
