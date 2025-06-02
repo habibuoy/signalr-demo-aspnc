@@ -30,7 +30,19 @@ public class InMemoryVoteService : IVoteService
         return Task.FromResult<Vote?>(vote);
     }
 
-    public Task<IEnumerable<VoteSubjectInput>?> GetVoteSubjectInputs(string voteId)
+    public Task<IEnumerable<VoteSubjectInput>> GetVoteInputsByUserIdAsync(string userId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+
+        var voteInputs = votes.Values
+            .SelectMany(v => v.Subjects)
+            .SelectMany(s => s.Voters)
+            .Where(si => si.VoterId == userId);
+
+        return Task.FromResult<IEnumerable<VoteSubjectInput>>(voteInputs.ToList());
+    }
+
+    public Task<IEnumerable<VoteSubjectInput>?> GetVoteInputsByVoteIdAsync(string voteId)
     {
         ArgumentException.ThrowIfNullOrEmpty(voteId);
 

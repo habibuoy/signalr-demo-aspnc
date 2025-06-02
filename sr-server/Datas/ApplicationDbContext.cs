@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Vote> Votes { get; set; }
     public DbSet<VoteSubject> VoteSubjects { get; set; }
+    public DbSet<VoteSubjectInput> VoteSubjectInputs { get; set; }
     public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

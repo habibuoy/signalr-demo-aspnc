@@ -118,7 +118,20 @@ public class DbVoteService : IVoteService
         return await votes.ToListAsync();
     }
 
-    public async Task<IEnumerable<VoteSubjectInput>?> GetVoteSubjectInputs(string voteId)
+    public async Task<IEnumerable<VoteSubjectInput>> GetVoteInputsByUserIdAsync(string userId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+
+        var voteInputs = dbContext.VoteSubjectInputs
+            .Where(si => si.VoterId == userId)
+            .Include(si => si.VoteSubject)
+            .ThenInclude(vs => vs!.Vote)
+            .AsSplitQuery();
+
+        return await voteInputs.ToListAsync();
+    }
+
+    public async Task<IEnumerable<VoteSubjectInput>?> GetVoteInputsByVoteIdAsync(string voteId)
     {
         ArgumentException.ThrowIfNullOrEmpty(voteId);
 

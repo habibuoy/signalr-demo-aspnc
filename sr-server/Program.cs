@@ -371,4 +371,17 @@ app.MapDelete("/vote/{id}", async (string? id,
 
 }).RequireAuthorization();
 
+app.MapGet("/vote/inputs", async (HttpContext httpContext,
+    [FromServices] IVoteService voteService) =>
+{
+    if (httpContext.User is not ClaimsPrincipal user)
+    {
+        return Results.LocalRedirect("/accessDenied");
+    }
+
+    var votes = await voteService.GetVoteInputsByUserIdAsync(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToDto())));
+
+}).RequireAuthorization();
+
 app.Run();
