@@ -245,7 +245,7 @@ app.MapPost("/vote/create", async (CreateVoteDto? inputDto,
 }).RequireAuthorization();
 
 app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
-    HttpContext httpContext, [FromServices] IVoteService voteService,
+    HttpContext httpContext,
     [FromServices] ILogger<Program> logger) =>
 {
     if (inputVote == null)
@@ -265,16 +265,12 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
 
     Vote vote = null!;
     string? email = null;
-    while (!success && remainingRetry > 0)
+    while (!success && remainingRetry >= 0)
     {
         try
         {
-            if (remainingRetry < maxRetry)
-            {
-                // create a new scope for each retry
-                using var scope = httpContext.RequestServices.CreateScope();
-                voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
-            }
+            using var scope = httpContext.RequestServices.CreateScope();
+            var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
 
             vote = (await voteService.GetVoteByIdAsync(inputVote.VoteId))!;
 
@@ -330,7 +326,7 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     if (!success)
     {
         logger.LogWarning("User {email} failed giving vote on vote {v.title} ({v.id}) after retrying for {maxRetry}",
-            email, vote.Title, vote.Id, remainingRetry);
+            email, vote.Title, vote.Id, maxRetry);
         return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
     }
 
