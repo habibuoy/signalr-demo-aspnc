@@ -26,6 +26,14 @@ public class UserService : IUserService
         return user;
     }
 
+    public async Task<User?> FindUserByIdAsync(string id)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+        return user;
+    }
+
     public Task<bool> AuthenticateAsync(User user, string password)
     {
         ArgumentNullException.ThrowIfNull(user);

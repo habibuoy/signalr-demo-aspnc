@@ -69,15 +69,20 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IVoteService, DbVoteService>();
 builder.Services.AddSingleton<IHubConnectionManager, HubConnectionManager>();
 builder.Services.AddSingleton<IHubConnectionReader, HubConnectionManager>();
+var voteQueue = new VoteQueue();
+builder.Services.AddSingleton<IVoteQueueReader>(voteQueue);
+builder.Services.AddSingleton<IVoteQueueWriter>(voteQueue);
 var voteNotification = new VoteNotification();
 builder.Services.AddSingleton<IVoteNotificationReader>(voteNotification);
 builder.Services.AddSingleton<IVoteNotificationWriter>(voteNotification);
+builder.Services.AddHostedService<VoteQueueProcessorBackgroundService>();
 builder.Services.AddHostedService<VoteBroadcasterBackgroundService>();
 
 var app = builder.Build();
 
 app.Lifetime.ApplicationStopping.Register(async () =>
 {
+    await voteQueue.CloseAsync();
     await voteNotification.CloseAsync();
 });
 
@@ -341,6 +346,40 @@ app.MapPost("/vote", async ([AsParameters] GiveVoteDto inputVote,
     }
 
     return Results.Ok(ResponseObject.Success(vote.ToDto()));
+}).RequireAuthorization();
+
+app.MapPost("/vote/queue", async ([AsParameters] GiveVoteDto inputVote,
+    HttpContext httpContext,
+    [FromServices] IVoteQueueWriter voteQueue,
+    [FromServices] ILogger<Program> logger) =>
+{
+    if (inputVote == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    if (httpContext.User is not ClaimsPrincipal user)
+    {
+        return Results.LocalRedirect("/accessDenied");
+    }
+
+    try
+    {
+        await voteQueue.WriteAsync(new VoteQueueItem()
+        {
+            VoteId = inputVote.VoteId,
+            SubjectId = inputVote.SubjectId.ToString(),
+            UserId = user.FindFirstValue(ClaimTypes.NameIdentifier)!
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Unknown error happened while user {email} queuing vote {voteId}",
+            user.FindFirstValue(ClaimTypes.Email), inputVote.VoteId);
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+
+    return Results.Ok(ResponseObject.Success($"Vote on {inputVote.VoteId} and subject id {inputVote.SubjectId} was succesfully queued"));
 }).RequireAuthorization();
 
 app.MapDelete("/vote/{id}", async (string? id,
