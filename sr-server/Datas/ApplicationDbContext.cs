@@ -15,7 +15,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<VoteSubject> VoteSubjects { get; set; }
     public DbSet<VoteSubjectInput> VoteSubjectInputs { get; set; }
     public DbSet<User> Users { get; set; }
-
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<UserRole> UserRoles { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -38,6 +40,16 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<VoteSubject>()
             .Property(v => v.Version)
             .IsConcurrencyToken();
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.User)
+            .WithMany()
+            .HasForeignKey(ur => ur.UserId);
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany()
+            .HasForeignKey(ur => ur.RoleId);
 
         modelBuilder.Entity<VoteSubject>().ToTable("VoteSubjects");
         modelBuilder.Entity<VoteSubjectInput>().ToTable("VoteInputs");

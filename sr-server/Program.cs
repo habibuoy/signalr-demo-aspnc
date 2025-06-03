@@ -62,10 +62,18 @@ builder.Services.AddAuthentication()
         options.Cookie.HttpOnly = false;
     }
 );
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(configure =>
+{
+    configure.AddPolicy("RoleManager", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("admin");
+    });
+});
 
 builder.Services.AddScoped<IUserService, UserService>();
-
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IVoteService, DbVoteService>();
 builder.Services.AddSingleton<IHubConnectionManager, HubConnectionManager>();
 builder.Services.AddSingleton<IHubConnectionReader, HubConnectionManager>();
@@ -129,7 +137,8 @@ app.MapPost("/register", async (CreateUserDto userDto,
 
 app.MapPost("/login", async (LoginUserDto userDto,
     HttpContext httpContext,
-    [FromServices] IUserService userService) =>
+    [FromServices] IUserService userService,
+    [FromServices] IRoleService roleService) =>
 {
     var email = userDto.Email;
     var user = await userService.GetUserByEmailAsync(email);
@@ -150,6 +159,9 @@ app.MapPost("/login", async (LoginUserDto userDto,
         new (ClaimTypes.Email, email),
         new (ClaimTypes.NameIdentifier, user.Id)
     };
+
+    var roles = await roleService.GetUserRolesByUserAsync(user);
+    claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r.Role!.Name)));
 
     var claimsIdentity = new ClaimsIdentity(claims,
         CookieAuthenticationDefaults.AuthenticationScheme);
@@ -176,6 +188,231 @@ app.MapGet("/accessDenied", () =>
     return Results.Json(ResponseObject.NotAuthorized(),
         statusCode: StatusCodes.Status401Unauthorized);
 });
+
+app.MapGet("/user/{user}/roles", async (string? user,
+    [FromServices] IUserService userService,
+    [FromServices] IRoleService roleService) =>
+{
+    if (user == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingUser = await userService.GetUserByIdAsync(user);
+    existingUser ??= await userService.GetUserByEmailAsync(user);
+
+    if (existingUser == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"User {user} not found"));
+    }
+
+    var userRoles = await roleService.GetUserRolesByUserAsync(existingUser);
+
+    return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleDto())));
+}).RequireAuthorization("RoleManager");
+
+app.MapGet("/role/{role}", async (string? role,
+    [FromServices] IRoleService roleService) =>
+{
+    if (role == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingRole = await roleService.GetRoleByNameAsync(role);
+    existingRole ??= await roleService.GetRoleByIdAsync(role);
+
+    if (existingRole == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+    }
+
+    return Results.Ok(ResponseObject.Success(existingRole.ToDto()));
+}).RequireAuthorization("RoleManager");
+
+app.MapGet("/role/{role}/users", async (string? role,
+    [FromServices] IRoleService roleService) =>
+{
+    if (role == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingRole = await roleService.GetRoleByNameAsync(role);
+    existingRole ??= await roleService.GetRoleByIdAsync(role);
+
+    if (existingRole == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+    }
+
+    var userRoles = await roleService.GetUserRolesByRoleAsync(existingRole);
+
+    return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToUserDto())));
+}).RequireAuthorization("RoleManager");
+
+app.MapPost("/role/create", async (CreateRoleDto? inputDto,
+    [FromServices] IRoleService roleService) =>
+{
+    if (inputDto == null)
+    {
+        return Results.BadRequest(ResponseObject.BadBody());
+    }
+
+    var role = await roleService.GetRoleByNameAsync(inputDto.Name);
+    if (role != null)
+    {
+        return Results.Conflict(ResponseObject.Create($"Role {inputDto.Name} already exists"));
+    }
+
+    role = await roleService.CreateRoleAsync(inputDto.Name, inputDto.Description);
+    if (role == null)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+
+    return Results.Ok(ResponseObject.Success(role.ToDto()));
+}).RequireAuthorization("RoleManager");
+
+app.MapPut("/role/update/{role}", async (string? role, UpdateRoleDto? inputDto,
+    [FromServices] IRoleService roleService) =>
+{
+    if (role == null || inputDto == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingRole = await roleService.GetRoleByNameAsync(role);
+    existingRole ??= await roleService.GetRoleByIdAsync(role);
+
+    if (existingRole == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+    }
+
+    var targetRole = await roleService.GetRoleByNameAsync(inputDto.Name);
+    if (targetRole != null)
+    {
+        return Results.Conflict(ResponseObject.Create($"Role {inputDto.Name} already exists"));
+    }
+
+    var updatedRole = inputDto.ToRole(existingRole.Id);
+
+    var result = await roleService.UpdateRoleAsync(updatedRole);
+    if (!result)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+
+    return Results.Ok(ResponseObject.Success(existingRole.ToDto()));
+}).RequireAuthorization("RoleManager");
+
+app.MapDelete("/role/delete/{role}", async (string? role,
+    [FromServices] IRoleService roleService) =>
+{
+    if (role == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingRole = await roleService.GetRoleByNameAsync(role);
+    existingRole ??= await roleService.GetRoleByIdAsync(role);
+
+    if (existingRole == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+    }
+
+    var result = await roleService.DeleteRoleAsync(existingRole);
+    if (!result)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+
+    return Results.Ok(ResponseObject.Success(null!));
+}).RequireAuthorization("RoleManager");
+
+app.MapPost("/role/{role}/assign/{user}/", async (string? user, string? role,
+    [FromServices] IUserService userService, 
+    [FromServices] IRoleService roleService) =>
+{
+    if (user == null || role == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingUser = await userService.GetUserByIdAsync(user);
+    existingUser ??= await userService.GetUserByEmailAsync(user);
+
+    if (existingUser == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"User with ID {user} not found"));
+    }
+
+    var existingRole = await roleService.GetRoleByNameAsync(role);
+    existingRole ??= await roleService.GetRoleByIdAsync(role);
+
+    if (existingRole == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+    }
+
+    var userRole = await roleService.GetUserRoleAsync(existingUser, existingRole);
+    if (userRole != null)
+    {
+        return Results.Conflict(ResponseObject.Create($"User {existingUser.Email} already has role {existingRole.Name}"));
+    }
+
+    userRole = await roleService.AssignUserToRoleAsync(existingUser, existingRole);
+    if (userRole == null)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+
+    return Results.Ok(ResponseObject.Success(userRole.ToDto()));
+
+}).RequireAuthorization("RoleManager");
+
+app.MapPost("/role/{role}/remove/{user}/", async (string? user, string? role,
+    [FromServices] IUserService userService,
+    [FromServices] IRoleService roleService) =>
+{
+    if (user == null || role == null)
+    {
+        return Results.BadRequest(ResponseObject.BadQuery());
+    }
+
+    var existingUser = await userService.GetUserByIdAsync(user);
+    existingUser ??= await userService.GetUserByEmailAsync(user);
+    
+    if (existingUser == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"User with ID {user} not found"));
+    }
+
+    var existingRole = await roleService.GetRoleByNameAsync(role);
+    existingRole ??= await roleService.GetRoleByIdAsync(role);
+
+    if (existingRole == null)
+    {
+        return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+    }
+
+    var userRole = await roleService.GetUserRoleAsync(existingUser, existingRole);
+    if (userRole == null)
+    {
+        return Results.BadRequest(ResponseObject.Create($"User {existingUser.Email} does not have role {existingRole.Name}"));
+    }
+
+    var result = await roleService.RemoveUserFromRoleAsync(existingUser, existingRole);
+    if (!result)
+    {
+        return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+    }
+    
+    return Results.Ok(ResponseObject.Success(null!));
+    
+}).RequireAuthorization("RoleManager");
 
 app.MapGet("/votes", async ([AsParameters] VotesQueryDto queryDto,
     [FromServices] IVoteService voteService) =>
