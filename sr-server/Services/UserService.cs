@@ -18,21 +18,14 @@ public class UserService : IUserService
         this.logger = logger;
     }
 
-    public async Task<User?> FindUserByEmailAsync(string email)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(email);
+    public Task<User?> GetUserByEmailAsync(string email) =>
+        dbContext.Users.FirstOrDefaultAsync(u => email != null && u.Email == email);
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-        return user;
-    }
+    public Task<User?> GetUserByIdAsync(string id) =>
+        dbContext.Users.FirstOrDefaultAsync(u => id != null && u.Id == id);
 
-    public async Task<User?> FindUserByIdAsync(string id)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(id);
-
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
-        return user;
-    }
+    public async Task<IEnumerable<User>> GetAllUsersAsync() =>
+        await dbContext.Users.ToListAsync();
 
     public Task<bool> AuthenticateAsync(User user, string password)
     {

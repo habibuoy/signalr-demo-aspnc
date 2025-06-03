@@ -110,7 +110,7 @@ app.MapPost("/register", async (CreateUserDto userDto,
     [FromServices] IUserService userService) =>
 {
     var email = userDto.Email;
-    var user = await userService.FindUserByEmailAsync(email);
+    var user = await userService.GetUserByEmailAsync(email);
     if (user != null)
     {
         return Results.Conflict(ResponseObject.Create($"Email {email} already registered"));
@@ -132,7 +132,7 @@ app.MapPost("/login", async (LoginUserDto userDto,
     [FromServices] IUserService userService) =>
 {
     var email = userDto.Email;
-    var user = await userService.FindUserByEmailAsync(email);
+    var user = await userService.GetUserByEmailAsync(email);
     if (user == null)
     {
         return Results.NotFound(ResponseObject.Create($"Email {email} is not registered"));

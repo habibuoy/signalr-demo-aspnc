@@ -31,7 +31,7 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
             var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
             var vote = await voteService.GetVoteByIdAsync(item.VoteId);
-            var user = await userService.FindUserByIdAsync(item.UserId);
+            var user = await userService.GetUserByIdAsync(item.UserId);
 
             if (vote == null)
             {
