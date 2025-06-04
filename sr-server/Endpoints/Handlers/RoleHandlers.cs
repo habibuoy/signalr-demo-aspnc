@@ -12,6 +12,7 @@ public static class RoleHandlers
     {
         routes.MapGet("/{role}", RoleHandlers.Get).RequireAuthorization("RoleManager");
         routes.MapGet("/{role}/users", RoleHandlers.GetRoleUsers).RequireAuthorization("RoleManager");
+        routes.MapGet("/user/{user}", RoleHandlers.GetUserRoles).RequireAuthorization("RoleManager");
         routes.MapPost("/create", RoleHandlers.Create).RequireAuthorization("RoleManager");
         routes.MapPut("/update/{role}", RoleHandlers.Update).RequireAuthorization("RoleManager");
         routes.MapDelete("/delete/{role}", RoleHandlers.Delete).RequireAuthorization("RoleManager");
@@ -59,6 +60,28 @@ public static class RoleHandlers
         var userRoles = await roleService.GetUserRolesByRoleAsync(existingRole);
 
         return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToUserDto())));
+    }
+
+    public static async Task<IResult> GetUserRoles(string? user,
+        [FromServices] IUserService userService,
+        [FromServices] IRoleService roleService)
+    {
+        if (user == null)
+        {
+            return Results.BadRequest(ResponseObject.BadQuery());
+        }
+
+        var existingUser = await userService.GetUserByIdAsync(user);
+        existingUser ??= await userService.GetUserByEmailAsync(user);
+
+        if (existingUser == null)
+        {
+            return Results.NotFound(ResponseObject.Create($"User {user} not found"));
+        }
+
+        var userRoles = await roleService.GetUserRolesByUserAsync(existingUser);
+
+        return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleDto())));
     }
 
     public static async Task<IResult> Create(CreateRoleDto? inputDto,
@@ -180,7 +203,6 @@ public static class RoleHandlers
         }
 
         return Results.Ok(ResponseObject.Success(userRole.ToDto()));
-
     }
 
     public static async Task<IResult> RemoveUser(string? user, string? role,
@@ -221,6 +243,5 @@ public static class RoleHandlers
         }
 
         return Results.Ok(ResponseObject.Success(null!));
-
     }
 }

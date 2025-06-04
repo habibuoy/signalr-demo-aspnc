@@ -223,7 +223,7 @@ async function onVoteListAnimationEnded(anim) {
 }
 
 async function updateVoteInputs() {
-    return fetch("https://localhost:7000/vote/inputs", {
+    return fetch("https://localhost:7000/user/vote-inputs", {
         credentials: 'include'
     })
         .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))

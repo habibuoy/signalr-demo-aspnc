@@ -11,17 +11,17 @@ namespace SignalRDemo.Server.Endpoints.Handlers;
 
 public static class VoteHandlers
 {
-    public static RouteGroupBuilder MapVotes(this RouteGroupBuilder app)
+    public static RouteGroupBuilder MapVotes(this RouteGroupBuilder routes)
     {
-        app.MapGet("/", VoteHandlers.GetMany).RequireAuthorization();
-        app.MapGet("/{id}", VoteHandlers.Get).RequireAuthorization();
-        app.MapPost("/create", VoteHandlers.Create).RequireAuthorization();
-        app.MapPost("/", VoteHandlers.Input).RequireAuthorization();
-        app.MapPost("/queue", VoteHandlers.InputQueue).RequireAuthorization();
-        app.MapDelete("/{id}", VoteHandlers.Delete).RequireAuthorization();
-        app.MapGet("/inputs", VoteHandlers.GetInputs).RequireAuthorization();
+        routes.MapGet("/", VoteHandlers.GetMany).RequireAuthorization();
+        routes.MapGet("/{id}", VoteHandlers.Get).RequireAuthorization();
+        routes.MapGet("/inputs/user/{user}", VoteHandlers.GetUserVoteInputs).RequireAuthorization();
+        routes.MapPost("/create", VoteHandlers.Create).RequireAuthorization();
+        routes.MapPost("/", VoteHandlers.Input).RequireAuthorization();
+        routes.MapPost("/queue", VoteHandlers.InputQueue).RequireAuthorization();
+        routes.MapDelete("/{id}", VoteHandlers.Delete).RequireAuthorization();
 
-        return app;
+        return routes;
     }
 
     public static async Task<IResult> GetMany([AsParameters] VotesQueryDto queryDto,
@@ -56,6 +56,28 @@ public static class VoteHandlers
         }
 
         return Results.Ok(ResponseObject.Success(vote.ToDto()));
+    }
+
+    public static async Task<IResult> GetUserVoteInputs(string? user,
+        [FromServices] IVoteService voteService,
+        [FromServices] IUserService userService)
+    {
+        if (user == null)
+        {
+            return Results.BadRequest(ResponseObject.BadQuery());
+        }
+
+        var existingUser = await userService.GetUserByIdAsync(user);
+        existingUser ??= await userService.GetUserByEmailAsync(user);
+
+        if (existingUser == null)
+        {
+            return Results.NotFound(ResponseObject.Create($"User {user} not found"));
+        }
+
+        var voteInputs = await voteService.GetVoteInputsByUserIdAsync(existingUser.Id);
+
+        return Results.Ok(ResponseObject.Success(voteInputs.Select(vi => vi.ToDto())));
     }
 
     public static async Task<IResult> Create(CreateVoteDto? inputDto,
@@ -255,17 +277,5 @@ public static class VoteHandlers
 
         return Results.Ok(ResponseObject.Success(null!));
 
-    }
-
-    public static async Task<IResult> GetInputs(HttpContext httpContext,
-        [FromServices] IVoteService voteService)
-    {
-        if (httpContext.User is not ClaimsPrincipal user)
-        {
-            return Results.LocalRedirect("/accessDenied");
-        }
-
-        var votes = await voteService.GetVoteInputsByUserIdAsync(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToDto())));
     }
 }
