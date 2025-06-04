@@ -60,13 +60,13 @@ async function getVoteInputs() {
         .then(response => {
             if (!response.isSuccess) {
                 if (response.json.message) {
-                    console.log("Failed when fetching vote inputs: ", response.message)
+                    console.log("Failed when fetching vote inputs: ", response.json.message)
                     return null
                 }
             }
 
             if (!response.json.result) {
-                console.log("Succeeded fetching vote inputs but no result object: ", response.message)
+                console.log("Succeeded fetching vote inputs but no result object: ", response.json.message)
                 return null
             }
 

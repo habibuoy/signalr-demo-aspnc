@@ -25,33 +25,34 @@ import { useRouter } from 'vue-router'
 const showLogout = ref(true)
 const showLogoutModal = ref(false)
 const props = defineProps({
-  onBeforeLogout: {
-    type: Function,
-    default: null
-  }
+    onBeforeLogout: {
+        type: Function,
+        default: null
+    }
 })
 
 const router = useRouter()
 const showNavbar = computed(() => !['/login', '/register'].includes(router.path))
 
 async function onLogout() {
-  showLogout.value = false
-  showLogoutModal.value = true
-  if (props.onBeforeLogout) {
-    // console.log(`awaiting onbeforelogout`)
-    await props.onBeforeLogout()
-  }
-//   console.log(`Logging out`)
-  // Remove auth cookie (set to expired)
-  document.cookie = 'auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
-  showLogoutModal.value = false
-  showLogout.value = true
-  router.push('/login')
+    showLogout.value = false
+    showLogoutModal.value = true
+    if (props.onBeforeLogout) {
+        // console.log(`awaiting onbeforelogout`)
+        await props.onBeforeLogout()
+    }
+    //   console.log(`Logging out`)
+    // Remove auth cookie (set to expired)
+    document.cookie = 'auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+    showLogoutModal.value = false
+    showLogout.value = true
+    router.push('/login')
 }
 </script>
 
 <style>
 body {
-  margin-top: 4rem; /* Adjust this value based on the navbar height */
+    margin-top: 4rem;
+    /* Adjust this value based on the navbar height */
 }
 </style>
