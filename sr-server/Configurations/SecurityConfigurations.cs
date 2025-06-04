@@ -41,6 +41,18 @@ public static class SecurityConfigurations
                 policy.RequireAuthenticatedUser();
                 policy.RequireRole(AdminRoleName);
             });
+
+            configure.AddPolicy(VoteAdministratorAuthorizationPolicyName, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireRole(AdminRoleName, VoteAdminRoleName);
+            });
+
+            configure.AddPolicy(VoteInspectorAuthorizationPolicyName, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireRole(AdminRoleName, VoteInspectorRoleName);
+            });
         });
 
         return services;

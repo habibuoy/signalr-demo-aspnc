@@ -8,5 +8,9 @@ public static class AppConstants
     // Security
     public const string AuthCookieName = "auth";
     public const string RoleManagerAuthorizationPolicyName = "RoleManager";
+    public const string VoteAdministratorAuthorizationPolicyName = "VoteAdministrator";
+    public const string VoteInspectorAuthorizationPolicyName = "VoteInspector";
     public const string AdminRoleName = "admin";
+    public const string VoteAdminRoleName = "voteadmin";
+    public const string VoteInspectorRoleName = "voteinspector";
 }

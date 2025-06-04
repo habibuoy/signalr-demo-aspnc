@@ -6,6 +6,7 @@ using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
+using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -17,11 +18,16 @@ public static class VoteHandlers
         
         routes.MapGet("/", GetMany);
         routes.MapGet("/{id}", Get);
-        routes.MapGet("/inputs/user/{user}", GetUserVoteInputs);
-        routes.MapPost("/create", Create);
         routes.MapPost("/", Input);
         routes.MapPost("/queue", InputQueue);
-        routes.MapDelete("/{id}", Delete);
+
+        routes.MapGet("/inputs/user/{user}", GetUserVoteInputs)
+            .RequireAuthorization(VoteInspectorAuthorizationPolicyName);
+
+        routes.MapPost("/create", Create)
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);;
+        routes.MapDelete("/{id}", Delete)
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);;
 
         return routes;
     }
