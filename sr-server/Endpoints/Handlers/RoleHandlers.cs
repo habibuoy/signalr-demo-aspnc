@@ -10,14 +10,14 @@ public static class RoleHandlers
 {
     public static RouteGroupBuilder MapRoles(this RouteGroupBuilder routes)
     {
-        routes.MapGet("/{role}", RoleHandlers.Get).RequireAuthorization("RoleManager");
-        routes.MapGet("/{role}/users", RoleHandlers.GetRoleUsers).RequireAuthorization("RoleManager");
-        routes.MapGet("/user/{user}", RoleHandlers.GetUserRoles).RequireAuthorization("RoleManager");
-        routes.MapPost("/create", RoleHandlers.Create).RequireAuthorization("RoleManager");
-        routes.MapPut("/update/{role}", RoleHandlers.Update).RequireAuthorization("RoleManager");
-        routes.MapDelete("/delete/{role}", RoleHandlers.Delete).RequireAuthorization("RoleManager");
-        routes.MapPost("/{role}/assign/{user}", RoleHandlers.AssignUser).RequireAuthorization("RoleManager");
-        routes.MapPost("/{role}/remove/{user}", RoleHandlers.RemoveUser).RequireAuthorization("RoleManager");
+        routes.MapGet("/{role}", Get).RequireAuthorization("RoleManager");
+        routes.MapGet("/{role}/users", GetRoleUsers).RequireAuthorization("RoleManager");
+        routes.MapGet("/user/{user}", GetUserRoles).RequireAuthorization("RoleManager");
+        routes.MapPost("/create", Create).RequireAuthorization("RoleManager");
+        routes.MapPut("/update/{role}", Update).RequireAuthorization("RoleManager");
+        routes.MapDelete("/delete/{role}", Delete).RequireAuthorization("RoleManager");
+        routes.MapPost("/{role}/assign/{user}", AssignUser).RequireAuthorization("RoleManager");
+        routes.MapPost("/{role}/remove/{user}", RemoveUser).RequireAuthorization("RoleManager");
 
         return routes;
     }

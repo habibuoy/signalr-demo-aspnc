@@ -13,13 +13,13 @@ public static class VoteHandlers
 {
     public static RouteGroupBuilder MapVotes(this RouteGroupBuilder routes)
     {
-        routes.MapGet("/", VoteHandlers.GetMany).RequireAuthorization();
-        routes.MapGet("/{id}", VoteHandlers.Get).RequireAuthorization();
-        routes.MapGet("/inputs/user/{user}", VoteHandlers.GetUserVoteInputs).RequireAuthorization();
-        routes.MapPost("/create", VoteHandlers.Create).RequireAuthorization();
-        routes.MapPost("/", VoteHandlers.Input).RequireAuthorization();
-        routes.MapPost("/queue", VoteHandlers.InputQueue).RequireAuthorization();
-        routes.MapDelete("/{id}", VoteHandlers.Delete).RequireAuthorization();
+        routes.MapGet("/", GetMany).RequireAuthorization();
+        routes.MapGet("/{id}", Get).RequireAuthorization();
+        routes.MapGet("/inputs/user/{user}", GetUserVoteInputs).RequireAuthorization();
+        routes.MapPost("/create", Create).RequireAuthorization();
+        routes.MapPost("/", Input).RequireAuthorization();
+        routes.MapPost("/queue", InputQueue).RequireAuthorization();
+        routes.MapDelete("/{id}", Delete).RequireAuthorization();
 
         return routes;
     }

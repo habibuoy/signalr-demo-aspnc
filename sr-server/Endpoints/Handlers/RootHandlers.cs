@@ -13,10 +13,10 @@ public static class RootHandlers
 {
     public static RouteGroupBuilder MapRoots(this RouteGroupBuilder routes)
     {
-        routes.MapPost("/register", RootHandlers.Register);
-        routes.MapPost("/login", RootHandlers.Login);
-        routes.MapGet("/logout", RootHandlers.Logout).RequireAuthorization();
-        routes.MapGet("/accessDenied", RootHandlers.AccessDenied);
+        routes.MapPost("/register", Register);
+        routes.MapPost("/login", Login);
+        routes.MapGet("/logout", Logout).RequireAuthorization();
+        routes.MapGet("/accessDenied", AccessDenied);
         return routes;
     }
 
