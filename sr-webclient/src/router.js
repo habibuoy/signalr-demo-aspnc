@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import VotePage from './VotePage.vue'
 import LoginPage from './LoginPage.vue'
 import RegisterPage from './RegisterPage.vue'
+import { isAuthenticated } from './access'
 
 const routes = [
     { path: '/', name: 'Home', component: VotePage, meta: { requiresAuth: true } },
@@ -13,12 +14,6 @@ const router = createRouter({
     history: createWebHistory(),
     routes
 })
-
-// Check if a cookie named 'auth' exists
-function isAuthenticated() {
-    const valid = document.cookie.split(';').some((c) => c.trim().startsWith('auth='))
-    return valid
-}
 
 router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth && !isAuthenticated()) {

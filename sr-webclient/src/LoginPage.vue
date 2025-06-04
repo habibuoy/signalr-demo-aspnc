@@ -25,35 +25,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { login } from './access'
 
 const email = ref('')
 const password = ref('')
 const router = useRouter()
-
-async function login() {
-    const loginHeader = new Headers()
-    loginHeader.append("Content-Type", "application/json")
-    const result = await fetch("https://localhost:7000/login", {
-        method: "POST",
-        body: JSON.stringify({
-            email: email.value,
-            password: password.value,
-            remember: false,
-        }),
-        headers: loginHeader,
-        credentials: "include"
-    })
-        .then(response => {
-            if (response.ok) {
-                return true
-            }
-
-            return false
-        })
-        .catch(error => console.error("Error while logging in", error))
-    
-    return result
-}
 
 async function onLogin() {
     console.log("Logging in")

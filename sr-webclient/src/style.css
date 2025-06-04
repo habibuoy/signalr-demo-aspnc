@@ -8,7 +8,7 @@
 
 .vote-card {
   @apply bg-white rounded-lg shadow-md p-4 mx-2;
-  
+
   min-width: 200px;
   max-width: 200px;
   height: 250px;
@@ -21,7 +21,7 @@
 }
 
 .vote-card.interactable {
-  @apply cursor-pointer transform transition-transform hover:scale-105;  
+  @apply cursor-pointer transform transition-transform hover:scale-105;
 }
 
 .vote-list {

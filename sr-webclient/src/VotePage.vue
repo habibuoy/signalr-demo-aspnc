@@ -87,7 +87,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
-import { Vote, VoteInput, VoteSubject } from './vote'
+import { Vote, VoteSubject, getVoteInputs, tryInputVote, getVotes } from './vote'
 
 const votes = ref([])
 const selectedVote = ref(null)
@@ -141,7 +141,6 @@ async function startSignalRConnection() {
 // Initialize data
 onMounted(async () => {
     try {
-        await login()
         await startSignalRConnection()
         await updateVoteInputs()
         loadVotes()
@@ -152,61 +151,21 @@ onMounted(async () => {
     }
 })
 
-async function login() {
-    const loginHeader = new Headers()
-    loginHeader.append("Content-Type", "application/json")
-    await fetch("https://localhost:7000/login", {
-        method: "POST",
-        body: JSON.stringify({
-            email: "creator@gmail.com",
-            password: "Password123@",
-            remember: true,
-        }),
-        headers: loginHeader,
-        credentials: "include"
-    })
-        .then(response => {
-
-        })
-        .catch(error => console.error("Error while logging in", error))
-}
-
 async function loadVotes() {
-    const response = await fetch("https://localhost:7000/vote?count=10&sortBy=cdt&sortOrder=desc", {
-        credentials: "include",
-    })
+    const votesResult = await getVotes()
 
-    if (!response.ok) {
-        console.log("failed fetching votes")
+    if (!votesResult) {
+        console.log("Failed loading votes")
         return
     }
 
-    const data = await response.json()
-    if (!data.result) return
-
-    const mappedVotes = data.result.map(vote => {
-        const v = new Vote(
-            vote.id,
-            vote.title,
-            vote.subjects.map(subject => new VoteSubject(
-                subject.id,
-                subject.name,
-                subject.voteCount
-            )),
-            vote.maximumCount,
-            vote.expiredTime
-        )
-        v.totalCount = vote.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
-        return v
-    })
-
     voteList.value.addEventListener("animationend", onVoteListAnimationEnded)
 
-    for (let i = 0; i < mappedVotes.length; i++) {
-        votes.value.push(mappedVotes[i])
+    for (let i = 0; i < votesResult.length; i++) {
+        votes.value.push(votesResult[i])
         await nextTick()
         scrollToEnd()
-        await delay(250)
+        await delay(150)
     }
 }
 
@@ -222,74 +181,17 @@ async function onVoteListAnimationEnded(anim) {
     }
 }
 
-async function updateVoteInputs() {
-    return fetch("https://localhost:7000/user/vote-inputs", {
-        credentials: 'include'
-    })
-        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
-        .then(response => {
-            if (!response.isSuccess) {
-                if (response.json.message) {
-                    console.log("Failed when fetching vote inputs: ", response.message)
-                    return
-                }
-            }
-            
-            if (!response.json.result) {
-                console.log("Succeeded fetching vote inputs but no result object: ", response.message)
-                return
-            }
-            
-            const result = response.json.result
-            voteInputs.value = result.map((inp) => new VoteInput(
-                inp.id, inp.voteId, inp.voteTitle, inp.subjectId, inp.subjectName, inp.inputTime
-            ))
-        })
-        .catch(error => console.error("Error happened while updating vote inputs", error))
-}
-
 async function inputVote(voteId, subjectId) {
     inputtingVote.value = { voteId: voteId, subjectId: subjectId }
 
-    return fetch(`https://localhost:7000/vote?voteId=${voteId}&subjectId=${subjectId}`, {
-        method: "POST",
-        credentials: "include"
-    })
-        .then(async response => {
-            const jsonBody = await response.json()
-            if (!response.ok) {
-                if (jsonBody.message) {
-                    console.log(`Failed when inputting vote (Code ${result.status}). Message: ${jsonBody.message}`)
-                    return
-                }
-            }
-        })
-        .catch(error => console.error("Error happened while inputting vote", error))
-        .finally(async () => {
-            await updateVoteInputs()
-            inputtingVote.value = null
-        })
+    await tryInputVote(voteId, subjectId)
 
-    // try
-    // {
-    //     const result = await fetch(`https://localhost:7000/vote?voteId=${voteId}&subjectId=${subjectId}`, {
-    //         method: "POST",
-    //         credentials: "include"
-    //     })
-        
-    //     const jsonBody = await result.json()
-    //     if (!result.ok) {
-    //         console.log(`Failed when inputting vote (Code ${result.status}). Message: ${jsonBody.message}`)
-    //     }
-    // }
-    // catch (error)
-    // {
-    //     console.error("Error happened while inputting vote", error)
-    // }
+    await updateVoteInputs()
+    inputtingVote.value = null
+}
 
-    // await updateVoteInputs()
-
-    // inputtingVote.value = null
+async function updateVoteInputs() {
+    voteInputs.value = await getVoteInputs()
 }
 
 // Watch voteList ref and setup event listeners
