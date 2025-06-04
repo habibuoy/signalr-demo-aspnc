@@ -172,7 +172,7 @@ async function login() {
 }
 
 async function loadVotes() {
-    const response = await fetch("https://localhost:7000/votes?count=10&sortBy=cdt&sortOrder=desc", {
+    const response = await fetch("https://localhost:7000/vote?count=10&sortBy=cdt&sortOrder=desc", {
         credentials: "include",
     })
 
