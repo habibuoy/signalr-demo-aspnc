@@ -3,6 +3,7 @@ using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
+using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -10,14 +11,16 @@ public static class RoleHandlers
 {
     public static RouteGroupBuilder MapRoles(this RouteGroupBuilder routes)
     {
-        routes.MapGet("/{role}", Get).RequireAuthorization("RoleManager");
-        routes.MapGet("/{role}/users", GetRoleUsers).RequireAuthorization("RoleManager");
-        routes.MapGet("/user/{user}", GetUserRoles).RequireAuthorization("RoleManager");
-        routes.MapPost("/create", Create).RequireAuthorization("RoleManager");
-        routes.MapPut("/update/{role}", Update).RequireAuthorization("RoleManager");
-        routes.MapDelete("/delete/{role}", Delete).RequireAuthorization("RoleManager");
-        routes.MapPost("/{role}/assign/{user}", AssignUser).RequireAuthorization("RoleManager");
-        routes.MapPost("/{role}/remove/{user}", RemoveUser).RequireAuthorization("RoleManager");
+        routes.RequireAuthorization(RoleManagerAuthorizationPolicyName);
+
+        routes.MapGet("/{role}", Get);
+        routes.MapGet("/{role}/users", GetRoleUsers);
+        routes.MapGet("/user/{user}", GetUserRoles);
+        routes.MapPost("/create", Create);
+        routes.MapPut("/update/{role}", Update);
+        routes.MapDelete("/delete/{role}", Delete);
+        routes.MapPost("/{role}/assign/{user}", AssignUser);
+        routes.MapPost("/{role}/remove/{user}", RemoveUser);
 
         return routes;
     }

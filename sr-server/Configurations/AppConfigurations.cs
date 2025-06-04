@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using SignalRDemo.Server.Datas;
+using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Configurations;
 
@@ -18,7 +19,7 @@ public static class AppConfigurations
     public static IServiceCollection AddDataServices(this IServiceCollection services,
         IConfiguration configuration, IHostEnvironment environment)
     {
-        var connectionString = configuration.GetConnectionString("MainDb");
+        var connectionString = configuration.GetConnectionString(MainDbName);
 
         services.AddSqlite<ApplicationDbContext>(connectionString,
             optionsAction: options =>

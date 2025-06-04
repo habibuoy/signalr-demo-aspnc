@@ -10,8 +10,9 @@ public static class UserHandlers
 {
     public static RouteGroupBuilder MapUsers(this RouteGroupBuilder routes)
     {
-        routes.MapGet("/roles", GetRoles).RequireAuthorization("RoleManager");
-        routes.MapGet("/vote-inputs", GetVoteInputs).RequireAuthorization();
+        routes.RequireAuthorization();
+        routes.MapGet("/roles", GetRoles);
+        routes.MapGet("/vote-inputs", GetVoteInputs);
 
         return routes;
     }
