@@ -38,7 +38,7 @@ public static class RootHandlers
                 $"Error on our side while registering {email}"));
         }
 
-        return Results.Ok(user.ToDto());
+        return Results.Ok(ResponseObject.Success(user.ToDto()));
     }
 
     public static async Task<IResult> Login(LoginUserDto userDto,
@@ -79,7 +79,7 @@ public static class RootHandlers
 
         await httpContext.SignInAsync(new ClaimsPrincipal(claimsIdentity), authenticationProperties);
 
-        return Results.Ok(user.ToDto());
+        return Results.Ok(ResponseObject.Success(user.ToDto()));
     }
 
     public static async Task<IResult> Logout(HttpContext httpContext,
