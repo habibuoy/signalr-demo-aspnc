@@ -88,6 +88,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
 import { Vote, VoteSubject, getVoteInputs, tryInputVote, getVotes } from './vote'
+import { delay } from './utils'
 
 const votes = ref([])
 const selectedVote = ref(null)
@@ -251,10 +252,6 @@ function handleUserInteraction() {
     setTimeout(() => {
         hasRecentInteraction.value = false
     }, interactionTimeout)
-}
-
-async function delay(durationInMs) {
-    return new Promise(resolve => setTimeout(resolve, durationInMs))
 }
 
 function scrollToStart() {
