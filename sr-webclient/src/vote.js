@@ -1,5 +1,5 @@
 export { Vote, VoteSubject, VoteInput, getVoteInputs, inputVote as tryInputVote, 
-        getVotes }
+        getVotes, createNewVote }
 
 async function getVotes(count = 10, sortOrder = "desc") {
     const response = await fetch(`https://localhost:7000/vote?${count}=10&sortBy=cdt&sortOrder=${sortOrder}`, {
@@ -78,6 +78,38 @@ async function getVoteInputs() {
         .catch(error => console.error("Error happened while updating vote inputs", error))
 }
 
+async function createNewVote(title, subjects, duration = 0, maxCount = 0) {
+    const jsonBody = JSON.stringify(new VoteCreate(title, subjects, duration, maxCount), null, "\t")
+    const reqHeader = new Headers()
+    reqHeader.append("Content-Type", "application/json")
+    console.log(jsonBody)
+    return fetch("https://localhost:7000/vote/create", {
+        method: "POST",
+        credentials: "include",
+        headers: reqHeader,
+        body: jsonBody
+    })
+        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+        .then(response => {
+            if (!response.isSuccess) {
+                if (response.json.message) {
+                    console.log("Failed when creating new vote: ", response.json.message)
+                    return null
+                }
+            }
+
+            const result = response.json.result
+            if (!result) {
+                console.log("Succeeded fetching vote inputs but no result object: ", response.json.message)
+                return null
+            }
+
+
+            return new Vote(result.id, result.title, result.subjects, result.maximumCount, result.expiredTime)
+        })
+        .catch(error => console.error("Error happened while creating new vote", error))
+}
+
 class Vote {
     totalCount = 0;
 
@@ -115,5 +147,14 @@ class VoteInput {
         this.subjectId = subjectId
         this.subjectName = subjectName
         this.inputTime = inputTime
+    }
+}
+
+class VoteCreate {
+    constructor(title, subjects, duration = 0, maxCount = 0) {
+        this.title = title,
+        this.subjects = subjects,
+        this.duration = duration > 0 ? duration : null,
+        this.maximumCount = maxCount > 0 ? maxCount : null
     }
 }
