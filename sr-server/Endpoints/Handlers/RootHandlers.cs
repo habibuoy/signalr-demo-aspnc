@@ -74,7 +74,7 @@ public static class RootHandlers
 
         var authenticationProperties = new AuthenticationProperties
         {
-            IssuedUtc = DateTime.UtcNow
+            IssuedUtc = DateTime.UtcNow,
         };
 
         await httpContext.SignInAsync(new ClaimsPrincipal(claimsIdentity), authenticationProperties);

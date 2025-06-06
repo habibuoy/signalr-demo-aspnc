@@ -21,6 +21,9 @@ public static class VoteHandlers
         routes.MapPost("/", Input);
         routes.MapPost("/queue", InputQueue);
 
+        routes.MapGet("/can-manage", () => Results.Ok(ResponseObject.Create(null!)))
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);;
+
         routes.MapGet("/inputs/user/{user}", GetUserVoteInputs)
             .RequireAuthorization(VoteInspectorAuthorizationPolicyName);
 
