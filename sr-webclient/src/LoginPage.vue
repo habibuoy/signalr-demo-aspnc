@@ -33,7 +33,7 @@ const router = useRouter()
 
 async function onLogin() {
     console.log("Logging in")
-    const result = await login()
+    const result = await login(email.value, password.value)
     if (result) {
         console.log(`Login successful`)
         router.push('/')

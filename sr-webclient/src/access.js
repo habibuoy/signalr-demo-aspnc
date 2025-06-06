@@ -1,13 +1,13 @@
 export { login, isAuthenticated }
 
-async function login() {
+async function login(email, password) {
     const loginHeader = new Headers()
     loginHeader.append("Content-Type", "application/json")
     return await fetch("https://localhost:7000/login", {
         method: "POST",
         body: JSON.stringify({
-            email: "creator@gmail.com",
-            password: "Password123@",
+            email: email,
+            password: password,
             remember: true,
         }),
         headers: loginHeader,
