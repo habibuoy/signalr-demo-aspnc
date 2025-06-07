@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using SignalRDemo.Server.Datas;
 using static SignalRDemo.Server.Configurations.AppConstants;
@@ -12,6 +14,10 @@ public static class AppConfigurations
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         services.AddOpenApi();
         services.AddSignalR();
+        services.Configure<JsonOptions>(options =>
+        {
+            options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+        });
 
         return services;
     }

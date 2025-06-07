@@ -6,6 +6,7 @@ using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
+using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
@@ -15,22 +16,22 @@ public static class VoteHandlers
     public static RouteGroupBuilder MapVotes(this RouteGroupBuilder routes)
     {
         routes.RequireAuthorization();
-        
+
         routes.MapGet("/", GetMany);
         routes.MapGet("/{id}", Get);
         routes.MapPost("/", Input);
         routes.MapPost("/queue", InputQueue);
 
         routes.MapGet("/can-manage", () => Results.Ok(ResponseObject.Create(null!)))
-            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);;
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName); ;
 
         routes.MapGet("/inputs/user/{user}", GetUserVoteInputs)
             .RequireAuthorization(VoteInspectorAuthorizationPolicyName);
 
         routes.MapPost("/create", Create)
-            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);;
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName); ;
         routes.MapDelete("/{id}", Delete)
-            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);;
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName); ;
 
         return routes;
     }
@@ -93,22 +94,35 @@ public static class VoteHandlers
 
     public static async Task<IResult> Create(CreateVoteDto? inputDto,
         HttpContext httpContext,
-        [FromServices] IVoteService voteService)
+        [FromServices] IVoteService voteService,
+        [FromServices] IUserService userService,
+        [FromServices] ILoggerFactory loggerFactory)
     {
-        if (inputDto == null
-            || !inputDto.IsValid())
+        if (inputDto == null)
         {
             return Results.BadRequest(ResponseObject.BadBody());
         }
 
-        if (httpContext.User == null)
+        var logger = loggerFactory.CreateLogger(nameof(VoteHandlers));
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userEmail = httpContext.User.FindFirstValue(ClaimTypes.Email);
+
+        try
         {
-            return Results.LocalRedirect("/accessDenied");
+            var dtoValidation = inputDto.Validate();
+            if (!dtoValidation.Succeeded)
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(dtoValidation.Error));
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            logger.LogError(ex, "Unexpected error happend while validating create vote request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
+                userEmail, userId, ex.FieldValue, ex.ReferenceValue);
+            return Results.InternalServerError(ResponseObject.Create("There was an unexpected error on our side while validating your request"));
         }
 
-        var creatorId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        var vote = inputDto.ToVote(creatorId);
+        var vote = inputDto.ToVote(await userService.GetUserByIdAsync(userId!));
 
         var result = await voteService.AddVoteAsync(vote);
         if (!result)
@@ -123,11 +137,10 @@ public static class VoteHandlers
         }
         catch (Exception ex)
         {
-            var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "Unexpected error happened while writing created vote notification");
         }
 
-        return Results.Ok(ResponseObject.Success(vote.ToDto()));
+        return Results.Created($"https://{httpContext.Request.Host}/vote/{vote.Id}", ResponseObject.Success(vote.ToDto()));
     }
 
     public static async Task<IResult> Input([AsParameters] GiveVoteDto inputVote,

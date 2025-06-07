@@ -5,6 +5,14 @@ public class ResponseObject
     public string Message { get; set; } = string.Empty;
     public object? Result { get; set; }
 
+    private ResponseObject() { }
+
+    private ResponseObject(string message, object? result)
+    {
+        Message = message;
+        Result = result;
+    }
+
     /// <summary>
     /// Return a response object with given message and result (default null)
     /// </summary>
@@ -68,5 +76,19 @@ public class ResponseObject
     public static ResponseObject NotAuthorized()
     {
         return Create("You are not authorized to access this resource");
+    }
+
+    public static ResponseObject ValidationError(object result)
+    {
+        return Create("Validation Error. Please correct the invalid field(s)", new { validationErrors = result } );
+    }
+
+    /// <summary>
+    /// Return a response object with resource concurrency message and null result
+    /// </summary>
+    /// <returns></returns>
+    public static ResponseObject Concurrency()
+    {
+        return Create("Resource was updated by someone else while updating your request");
     }
 }

@@ -4,6 +4,9 @@ namespace SignalRDemo.Server.Models;
 
 public class Vote
 {
+    public const int MinimumTitleLength = 3;
+    public const int MinimumSubjectCount = 2;
+    
     public required string Id { get; init; }
     public required string Title { get; set; } = string.Empty;
     public List<VoteSubject> Subjects { get; set; } = new();
@@ -16,6 +19,12 @@ public class Vote
     public User? User { get; set; }
 
     private object voteLock = new();
+    public int CurrentCount => Subjects.Aggregate(0, (acc, n) =>
+    {
+        acc += n.Voters.Count;
+        return acc;
+    });
+
 
     [SetsRequiredMembers]
     protected Vote()
@@ -24,7 +33,7 @@ public class Vote
     }
 
     [SetsRequiredMembers]
-    protected Vote(string title, string[] subjects)
+    private Vote(string title, string[] subjects)
         : this()
     {
         ArgumentNullException.ThrowIfNull(subjects);
@@ -43,14 +52,16 @@ public class Vote
     }
 
     [SetsRequiredMembers]
-    public Vote(string title, string[] subjects,
-        DateTime? expiredTime = null, int? maximumCount = null)
+    private Vote(string title, string[] subjects, User? creator,
+        int? duration = null, int? maximumCount = null)
             : this(title, subjects)
     {
-        ExpiredTime = expiredTime;
         MaximumCount = maximumCount;
-
         CreatedTime = DateTime.UtcNow;
+
+        ExpiredTime = duration != null && duration > 0 ? CreatedTime.AddSeconds(duration.Value) : null;
+        CreatorId = creator?.Id;
+        User = creator;
     }
 
     public bool IsClosed()
@@ -89,4 +100,7 @@ public class Vote
             }
         }
     }
+
+    public static Vote Create(string title, string[] subjects, User? creator, int? duration, int? maximumCount) =>
+        new(title, subjects, creator, duration, maximumCount);
 }

@@ -5,14 +5,10 @@ namespace SignalRDemo.Server.Utils.Extensions;
 
 public static class CreateVoteDtoExtensions
 {
-    public static Vote ToVote(this CreateVoteDto dto, string? creatorId = null)
+    public static Vote ToVote(this CreateVoteDto dto, User? creator = null)
     {
-        var vote = new Vote(dto.Title, dto.Subjects, maximumCount: dto.MaximumCount);
-        if (dto.Duration != null)
-        {
-            vote.ExpiredTime = vote.CreatedTime.AddSeconds(dto.Duration.Value);
-        }
-        vote.CreatorId = creatorId;
+        var vote = Vote.Create(dto.Title, dto.Subjects, creator,
+            dto.Duration, dto.MaximumCount);
 
         return vote;
     }
