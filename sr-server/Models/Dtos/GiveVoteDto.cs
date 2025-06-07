@@ -1,10 +1,21 @@
+using static SignalRDemo.Server.Utils.Validators.VoteValidators;
+
 namespace SignalRDemo.Server.Models.Dtos;
 
-public class GiveVoteDto
+public class GiveVoteDto : BaseDto
 {
+
     public required string VoteId { get; set; }
     public required int SubjectId { get; set; }
-    public string? UserId { get; set; }
+
+    public override FieldValidationResult Validate(object? reference = null)
+    {
+        var result = FieldValidationResult.Create();
+        if (ValidateVoteId(VoteId) is { Succeeded: false } voteIdValidation)
+            result.AddError(nameof(VoteId), voteIdValidation.Error);
+
+        return result;
+    }
 
     // public static bool TryParse(HttpContext httpContext)
     // {

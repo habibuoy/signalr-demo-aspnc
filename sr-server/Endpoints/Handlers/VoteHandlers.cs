@@ -117,9 +117,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Unexpected error happend while validating create vote request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
+            logger.LogError(ex, "Error happened while validating create vote request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
                 userEmail, userId, ex.FieldValue, ex.ReferenceValue);
-            return Results.InternalServerError(ResponseObject.Create("There was an unexpected error on our side while validating your request"));
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         var vote = inputDto.ToVote(await userService.GetUserByIdAsync(userId!));
@@ -127,7 +127,7 @@ public static class VoteHandlers
         var result = await voteService.AddVoteAsync(vote);
         if (!result)
         {
-            return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         try
@@ -152,9 +152,23 @@ public static class VoteHandlers
             return Results.BadRequest(ResponseObject.BadQuery());
         }
 
-        if (httpContext.User is not ClaimsPrincipal user)
+        var logger = loggerFactory.CreateLogger(nameof(VoteHandlers));
+
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        string? email = httpContext.User.FindFirstValue(ClaimTypes.Email);
+        try
         {
-            return Results.LocalRedirect("/accessDenied");
+            var inputValidation = inputVote.Validate();
+            if (!inputValidation.Succeeded)
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(inputValidation.Error));
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            logger.LogError(ex, "Error happened while validating input vote request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
+                email, userId, ex.FieldValue, ex.ReferenceValue);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         var success = false;
@@ -163,9 +177,7 @@ public static class VoteHandlers
         int remainingRetry = maxRetry;
 
         Vote vote = null!;
-        string? email = null;
 
-        var logger = loggerFactory.CreateLogger(nameof(VoteHandlers));
         while (!success && remainingRetry >= 0)
         {
             try
@@ -181,8 +193,8 @@ public static class VoteHandlers
                 }
 
                 var inputs = vote.Subjects.SelectMany(s => s.Voters);
-                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-                email = user.FindFirstValue(ClaimTypes.Email);
+                userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                email = httpContext.User.FindFirstValue(ClaimTypes.Email);
                 if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
                 {
                     return Results.Conflict(ResponseObject.Create($"User {email} already have given vote on vote id {vote.Id}"));
@@ -220,6 +232,12 @@ public static class VoteHandlers
                 // logger.LogWarning("DB Concurrency happened while {user} giving vote for {vote.Id}", email, vote!.Id);
                 remainingRetry--;
             }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unexpected error happened while User {email} giving vote on vote {v.title} ({v.id})",
+                    email, vote.Title, vote.Id);
+                return Results.InternalServerError(ResponseObject.ServerError());
+            }
 
             await Task.Delay(Random.Shared.Next(10, 50));
         }
@@ -228,7 +246,7 @@ public static class VoteHandlers
         {
             logger.LogWarning("User {email} failed giving vote on vote {v.title} ({v.id}) after retrying for {maxRetry}",
                 email, vote.Title, vote.Id, maxRetry);
-            return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         try
@@ -254,26 +272,39 @@ public static class VoteHandlers
             return Results.BadRequest(ResponseObject.BadQuery());
         }
 
-        if (httpContext.User is not ClaimsPrincipal user)
+        var logger = loggerFactory.CreateLogger(nameof(VoteHandlers));
+
+        string userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        string email = httpContext.User.FindFirstValue(ClaimTypes.Email)!;
+        try
         {
-            return Results.LocalRedirect("/accessDenied");
+            var inputValidation = inputVote.Validate();
+            if (!inputValidation.Succeeded)
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(inputValidation.Error));
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            logger.LogError(ex, "Error happened while validating input vote queue request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
+                email, userId, ex.FieldValue, ex.ReferenceValue);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        var logger = loggerFactory.CreateLogger(nameof(VoteHandlers));
         try
         {
             await voteQueue.WriteAsync(new VoteQueueItem()
             {
                 VoteId = inputVote.VoteId,
                 SubjectId = inputVote.SubjectId.ToString(),
-                UserId = user.FindFirstValue(ClaimTypes.NameIdentifier)!
+                UserId = userId
             });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unknown error happened while user {email} queuing vote {voteId}",
-                user.FindFirstValue(ClaimTypes.Email), inputVote.VoteId);
-            return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+                email, inputVote.VoteId);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         return Results.Ok(ResponseObject.Success($"Vote on {inputVote.VoteId} and subject id {inputVote.SubjectId} was succesfully queued"));

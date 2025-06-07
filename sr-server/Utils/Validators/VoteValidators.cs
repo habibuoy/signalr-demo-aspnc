@@ -5,6 +5,14 @@ namespace SignalRDemo.Server.Utils.Validators;
 
 public static class VoteValidators
 {
+    public static void VoteIdValidator(string voteId, List<string> errors)
+    {
+        if (voteId == null)
+        {
+            errors.Add("Vote Id cannot be null");
+        }
+    }
+
     public static Result<string, List<string>> ValidateTitle(string title)
     {
         try
@@ -107,6 +115,18 @@ public static class VoteValidators
                     errors.Add($"Duration count cannot be more than {int.MaxValue}");
                 }
             });
+        }
+        catch (ModelFieldValidatorException)
+        {
+            throw;
+        }
+    }
+
+    public static Result<string, List<string>> ValidateVoteId(string voteId)
+    {
+        try
+        {
+            return ValidateModelFieldValue(voteId, VoteIdValidator);
         }
         catch (ModelFieldValidatorException)
         {

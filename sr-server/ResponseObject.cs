@@ -78,9 +78,14 @@ public class ResponseObject
         return Create("You are not authorized to access this resource");
     }
 
+    /// <summary>
+    /// Return a response object with validation error message and result containing of error fields
+    /// </summary>
+    /// <param name="result"></param>
+    /// <returns></returns>
     public static ResponseObject ValidationError(object result)
     {
-        return Create("Validation Error. Please correct the invalid field(s)", new { validationErrors = result } );
+        return Create("Validation Error. Please correct the invalid field(s)", new { validationErrors = result });
     }
 
     /// <summary>
@@ -90,5 +95,14 @@ public class ResponseObject
     public static ResponseObject Concurrency()
     {
         return Create("Resource was updated by someone else while updating your request");
+    }
+
+    /// <summary>
+    /// Return a response object with internal server error message and null result
+    /// </summary>
+    /// <returns></returns>
+    public static ResponseObject ServerError()
+    {
+        return Create("There was an error on our side");
     }
 }
