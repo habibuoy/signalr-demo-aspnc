@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using SignalRDemo.Server.Interfaces;
+using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
@@ -47,8 +48,25 @@ public static class RootHandlers
             return Results.Conflict(ResponseObject.Create($"Email {email} already registered"));
         }
 
-        user = await userService.CreateUserAsync(userDto.Email,
-        userDto.Password, userDto.FirstName, userDto.LastName);
+        try
+        {
+            user = userDto.ToUser();
+        }
+        catch (DomainException ex)
+        {
+            if (ex.ValidationErrors.Any())
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+            }
+            else
+            {
+                logger.LogError(ex, "Domain error happened while creating User entity of {email}",
+                    userDto.Email);
+                return Results.InternalServerError(ResponseObject.ServerError());
+            }
+        }
+
+        user = await userService.CreateUserAsync(user);
         if (user == null)
         {
             return Results.InternalServerError(ResponseObject.Create(

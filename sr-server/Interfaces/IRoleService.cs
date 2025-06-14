@@ -7,7 +7,7 @@ public interface IRoleService
     Task<Role?> GetRoleByIdAsync(string id);
     Task<Role?> GetRoleByNameAsync(string name);
     Task<IEnumerable<Role>> GetAllRolesAsync();
-    Task<Role?> CreateRoleAsync(string name, string? description = null);
+    Task<Role?> CreateRoleAsync(Role role);
     Task<bool> DeleteRoleAsync(Role role);
     Task<bool> UpdateRoleAsync(Role role);
     Task<UserRole?> AssignUserToRoleAsync(User user, Role role);

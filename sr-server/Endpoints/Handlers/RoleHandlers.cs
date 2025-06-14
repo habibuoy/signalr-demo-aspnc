@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using SignalRDemo.Server.Interfaces;
+using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
@@ -124,7 +125,26 @@ public static class RoleHandlers
             return Results.Conflict(ResponseObject.Create($"Role {inputDto.Name} already exists"));
         }
 
-        role = await roleService.CreateRoleAsync(inputDto.Name, inputDto.Description);
+        try
+        {
+            role = inputDto.ToRole();
+        }
+        catch (DomainException ex)
+        {
+            if (ex.ValidationErrors.Any())
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+            }
+            else
+            {
+                var email = httpContext.User?.FindFirstValue(ClaimTypes.Email);
+                logger.LogError(ex, "Domain error happened while creating Role entity by request of user {email}",
+                    email);
+                return Results.InternalServerError(ResponseObject.ServerError());
+            }
+        }
+
+        role = await roleService.CreateRoleAsync(role);
         if (role == null)
         {
             return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));

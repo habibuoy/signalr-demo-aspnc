@@ -123,7 +123,24 @@ public static class VoteHandlers
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        var vote = inputDto.ToVote(await userService.GetUserByIdAsync(userId!));
+        Vote vote;
+        try
+        {
+            vote = inputDto.ToVote(await userService.GetUserByIdAsync(userId!));
+        }
+        catch (DomainException ex)
+        {
+            if (ex.ValidationErrors.Any())
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+            }
+            else
+            {
+                logger.LogError(ex, "Domain error happened while creating vote entity from user {email} ({id})",
+                    userEmail, userId);
+                return Results.InternalServerError(ResponseObject.ServerError());
+            }
+        }
 
         var result = await voteService.AddVoteAsync(vote);
         if (!result)

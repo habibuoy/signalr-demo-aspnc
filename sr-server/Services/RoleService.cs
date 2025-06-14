@@ -25,16 +25,16 @@ public class RoleService : IRoleService
     public async Task<IEnumerable<Role>> GetAllRolesAsync() =>
         await dbContext.Roles.ToListAsync();
 
-    public async Task<Role?> CreateRoleAsync(string name, string? description = null)
+    public async Task<Role?> CreateRoleAsync(Role role)
     {
-        var role = await GetRoleByNameAsync(name);
-        if (role != null)
+        var name = role.Name;
+
+        var existing = await GetRoleByNameAsync(name);
+        if (existing != null)
         {
             logger.LogWarning("Trying to create role with name {name} that already exists.", name);
             return null;
         }
-
-        role = Role.Create(name, description);
 
         dbContext.Roles.Add(role);
         try

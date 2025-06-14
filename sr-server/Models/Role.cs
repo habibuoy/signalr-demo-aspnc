@@ -1,4 +1,5 @@
-using SignalRDemo.Server.Models.Dtos;
+using SignalRDemo.Server.Utils.Validators;
+using static SignalRDemo.Server.Utils.Validators.RoleValidators;
 
 namespace SignalRDemo.Server.Models;
 
@@ -10,8 +11,27 @@ public class Role
     public string Description { get; set; } = string.Empty;
     public DateTime CreatedTime { get; set; }
 
-    public Role(string name)
+    private Role() { }
+
+    private Role(string name)
     {
+        try
+        {
+            List<string> validationErrors = new();
+            if (ValidateName(name) is { Succeeded: false } nameValidation)
+                validationErrors.AddRange(nameValidation.Error);
+
+            if (validationErrors.Count > 0)
+            {
+                throw new DomainException($"Validation error while creating {nameof(Role)} entity. " +
+                    "Check out the errors property.", validationErrors);
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            throw new DomainException($"Validator error happened while creating {nameof(Role)} entity", ex);
+        }
+
         Id = Guid.CreateVersion7().ToString();
         Name = name.ToLower();
         NormalizedName = Name.ToUpper();

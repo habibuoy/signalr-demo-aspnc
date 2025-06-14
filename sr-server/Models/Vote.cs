@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using SignalRDemo.Server.Utils.Validators;
+using static SignalRDemo.Server.Utils.Validators.VoteValidators;
 
 namespace SignalRDemo.Server.Models;
 
@@ -25,18 +27,40 @@ public class Vote
         return acc;
     });
 
-
+    private Vote() { }
+    
     [SetsRequiredMembers]
-    protected Vote()
+    private Vote(string title, string[] subjects, User? creator,
+        int? duration = null, int? maximumCount = null)
     {
         Id = Guid.NewGuid().ToString();
-    }
 
-    [SetsRequiredMembers]
-    private Vote(string title, string[] subjects)
-        : this()
-    {
-        ArgumentNullException.ThrowIfNull(subjects);
+        try
+        {
+            List<string> validationErrors = new();
+            if (ValidateTitle(title) is { Succeeded: false } titleValidation)
+                validationErrors.AddRange(titleValidation.Error);
+
+            if (ValidateSubjects(subjects) is { Succeeded: false } subjectsValidation)
+                validationErrors.AddRange(subjectsValidation.Error);
+
+            if (ValidateMaximumCount(maximumCount, subjects) is { Succeeded: false } maxCountValidation)
+                validationErrors.AddRange(maxCountValidation.Error);
+
+            if (ValidateDuration(duration) is { Succeeded: false } durationValidation)
+                validationErrors.AddRange(durationValidation.Error);
+
+            if (validationErrors.Count > 0)
+            {
+                throw new DomainException($"Validation error while creating {nameof(Vote)} entity. " +
+                    "Check out the errors property.", validationErrors);
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            throw new DomainException($"Validator error happened while creating {nameof(Vote)} entity", ex);
+        }
+
         Title = title;
         for (int i = 0; i < subjects.Length; i++)
         {
@@ -49,13 +73,7 @@ public class Vote
                 VoteId = Id,
             });
         }
-    }
 
-    [SetsRequiredMembers]
-    private Vote(string title, string[] subjects, User? creator,
-        int? duration = null, int? maximumCount = null)
-            : this(title, subjects)
-    {
         MaximumCount = maximumCount;
         CreatedTime = DateTime.UtcNow;
 

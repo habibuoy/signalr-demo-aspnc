@@ -35,21 +35,8 @@ public class UserService : IUserService
         return Task.FromResult(PasswordHasher.VerifyHash(user.PasswordHash, password));
     }
 
-    public async Task<User?> CreateUserAsync(string email, string password, string? firstName, string? lastName)
+    public async Task<User?> CreateUserAsync(User user)
     {
-        ArgumentException.ThrowIfNullOrEmpty(email);
-        ArgumentException.ThrowIfNullOrEmpty(password);
-
-        var user = new User()
-        {
-            Id = Guid.NewGuid().ToString(),
-            Email = email,
-            FirstName = firstName,
-            PasswordHash = PasswordHasher.Hash(password),
-            LastName = lastName,
-            CreatedTime = DateTime.UtcNow
-        };
-
         dbContext.Add(user);
         try
         {
@@ -57,6 +44,7 @@ public class UserService : IUserService
         }
         catch (Exception ex)
         {
+            var email = user.Email;
             switch (ex)
             {
                 case DbUpdateException:
