@@ -6,6 +6,7 @@ using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
+using SignalRDemo.Server.Utils.Validators;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -21,8 +22,23 @@ public static class RootHandlers
     }
 
     public static async Task<IResult> Register(CreateUserDto userDto,
-        [FromServices] IUserService userService)
+        [FromServices] IUserService userService,
+        [FromServices] ILoggerFactory loggerFactory)
     {
+        var logger = loggerFactory.CreateLogger(nameof(RootHandlers));
+
+        try
+        {
+            var validation = userDto.Validate();
+            if (!validation.Succeeded) return Results.BadRequest(ResponseObject.ValidationError(validation.Error));
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            logger.LogError(ex, "Error happened while validating register request. Field value: {fieldValue}, reference value: {refValue}.",
+                ex.FieldValue, ex.ReferenceValue);
+            return Results.InternalServerError(ResponseObject.ServerError());
+        }
+
         var email = userDto.Email;
         var user = await userService.GetUserByEmailAsync(email);
         if (user != null)
