@@ -26,7 +26,7 @@ public static partial class UserValidator
 
     public static Result<string, List<string>> ValidateEmail(string email)
     {
-        return ValidateModelFieldValue(email, static (email, errors) =>
+        return ValidateModelFieldValue(nameof(email), email, static (email, errors) =>
         {
             if (email.Length == 0)
             {
@@ -42,7 +42,7 @@ public static partial class UserValidator
 
     public static Result<string, List<string>> ValidatePassword(string password)
     {
-        return ValidateModelFieldValue(password, static (password, errors) =>
+        return ValidateModelFieldValue(nameof(password), password, static (password, errors) =>
         {
             if (password.Length == 0)
             {
@@ -78,7 +78,7 @@ public static partial class UserValidator
 
     public static Result<string, List<string>> ValidatePasswordAgainstEmail(string password, string email)
     {
-        return ValidateModelFieldValue(password, email,  static (password, email, errors) =>
+        return ValidateModelFieldValue(nameof(password), password, email, static (password, email, errors) =>
         {
             if (email == password)
             {

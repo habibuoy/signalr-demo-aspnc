@@ -34,8 +34,9 @@ public static class RootHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating register request. Field value: {fieldValue}, reference value: {refValue}.",
-                ex.FieldValue, ex.ReferenceValue);
+            logger.LogError(ex, "Error happened while validating register request. " +
+                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
+                ex.FieldName, ex.FieldValue, ex.ReferenceValue);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 

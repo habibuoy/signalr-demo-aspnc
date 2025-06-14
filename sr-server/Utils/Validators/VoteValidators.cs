@@ -17,7 +17,7 @@ public static class VoteValidators
     {
         try
         {
-            return ValidateModelFieldValue(title, static (title, errors) =>
+            return ValidateModelFieldValue(nameof(title), title, static (title, errors) =>
             {
                 if (string.IsNullOrEmpty(title))
                 {
@@ -39,7 +39,7 @@ public static class VoteValidators
     {
         try
         {
-            return ValidateModelFieldValue(subjects, static (subjects, errors) =>
+            return ValidateModelFieldValue(nameof(subjects), subjects, static (subjects, errors) =>
             {
                 if (subjects == null)
                 {
@@ -63,7 +63,8 @@ public static class VoteValidators
         {
             int subjectCount = subjects == null ? 0 : subjects.Length;
 
-            return ValidateModelFieldValue(maximumCount, subjectCount, static (maximumCount, subjectCount, errors) =>
+            return ValidateModelFieldValue(nameof(maximumCount), maximumCount,
+                subjectCount, static (maximumCount, subjectCount, errors) =>
             {
                 if (maximumCount == null) return;
 
@@ -101,7 +102,7 @@ public static class VoteValidators
     {
         try
         {
-            return ValidateModelFieldValue(duration, static (duration, errors) =>
+            return ValidateModelFieldValue(nameof(duration), duration, static (duration, errors) =>
             {
                 if (duration == null) return;
 
@@ -126,7 +127,7 @@ public static class VoteValidators
     {
         try
         {
-            return ValidateModelFieldValue(voteId, VoteIdValidator);
+            return ValidateModelFieldValue(nameof(voteId), voteId, VoteIdValidator);
         }
         catch (ModelFieldValidatorException)
         {

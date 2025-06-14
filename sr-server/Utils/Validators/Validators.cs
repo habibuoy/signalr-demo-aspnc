@@ -11,7 +11,8 @@ public static class Validators
     /// <returns><see cref="Result{T, List{T}(string)}"/> object with value of type <typeparamref name="T"/> if validation succeeded
     /// or List of error message otherwise</returns>
     /// <exception cref="ModelFieldValidatorException{T}"></exception>
-    public static Result<T, List<string>> ValidateModelFieldValue<T>(T value, Action<T, List<string>> validateAction)
+    public static Result<T, List<string>> ValidateModelFieldValue<T>(string fieldName,
+        T value, Action<T, List<string>> validateAction)
     {
         try
         {
@@ -28,7 +29,7 @@ public static class Validators
         catch (Exception ex)
         {
             throw new ModelFieldValidatorException("Unexpected error happened while validating model field",
-                nameof(value), value, ex);
+                fieldName, value, innerException: ex);
         }
     }
 
@@ -38,8 +39,8 @@ public static class Validators
     /// <typeparam name="TReference">Object reference type</typeparam>
     /// <param name="reference">Reference object value</param>
     /// <inheritdoc cref="ValidateModelFieldValue"/>
-    public static Result<T, List<string>> ValidateModelFieldValue<T, TReference>(T value, TReference reference,
-        Action<T, TReference, List<string>> validateAction)
+    public static Result<T, List<string>> ValidateModelFieldValue<T, TReference>(string fieldName,
+        T value, TReference reference, Action<T, TReference, List<string>> validateAction)
     {
         try
         {
@@ -55,7 +56,8 @@ public static class Validators
         }
         catch (Exception ex)
         {
-            throw new ModelFieldValidatorException("Unexpected error happened while validating model field", value, reference, ex);
+            throw new ModelFieldValidatorException("Unexpected error happened while validating model field",
+                fieldName, value, reference, ex);
         }
     }
 }

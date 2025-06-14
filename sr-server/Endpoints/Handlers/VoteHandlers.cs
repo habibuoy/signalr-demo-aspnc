@@ -117,8 +117,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating create vote request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
-                userEmail, userId, ex.FieldValue, ex.ReferenceValue);
+            logger.LogError(ex, "Error happened while validating create vote request from user {email} ({id}). " +
+                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
+                userEmail, userId, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -166,8 +167,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating input vote request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
-                email, userId, ex.FieldValue, ex.ReferenceValue);
+            logger.LogError(ex, "Error happened while validating input vote request from user {email} ({id}). " +
+                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
+                email, userId, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -286,8 +288,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating input vote queue request from user {email} ({id}). Field value: {fieldValue}, reference value: {refValue}.",
-                email, userId, ex.FieldValue, ex.ReferenceValue);
+            logger.LogError(ex, "Error happened while validating input vote queue request from user {email} ({id}). " +
+                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
+                email, userId, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 

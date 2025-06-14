@@ -7,7 +7,7 @@ public static class RoleValidators
 {
     public static Result<string, List<string>> ValidateName(string name)
     {
-        return ValidateModelFieldValue(name, static (name, errors) =>
+        return ValidateModelFieldValue(nameof(name), name, static (name, errors) =>
         {
             if (name.Length == 0)
             {

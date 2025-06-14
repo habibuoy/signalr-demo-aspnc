@@ -112,8 +112,9 @@ public static class RoleHandlers
         catch (ModelFieldValidatorException ex)
         {
             var email = httpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
-            logger.LogError(ex, "Error happened while validating create role request by {email}. Field value: {fieldValue}, reference value: {refValue}.",
-                email, ex.FieldValue, ex.ReferenceValue);
+            logger.LogError(ex, "Error happened while validating create role request by {email}. " +
+                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
+                email, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -163,8 +164,9 @@ public static class RoleHandlers
         catch (ModelFieldValidatorException ex)
         {
             var email = httpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
-            logger.LogError(ex, "Error happened while validating update role request by {email}. Field value: {fieldValue}, reference value: {refValue}.",
-                email, ex.FieldValue, ex.ReferenceValue);
+            logger.LogError(ex, "Error happened while validating update role request by {email}. " +
+                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
+                email, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
