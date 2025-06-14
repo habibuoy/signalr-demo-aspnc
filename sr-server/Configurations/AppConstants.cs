@@ -13,4 +13,8 @@ public static class AppConstants
     public const string AdminRoleName = "admin";
     public const string VoteAdminRoleName = "voteadmin";
     public const string VoteInspectorRoleName = "voteinspector";
+
+    // Validations
+    public const int UserPasswordMinimumLength = 8;
+    public const int RoleNameMinimumLength = 3;
 }

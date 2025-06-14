@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
+using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
@@ -88,11 +90,31 @@ public static class RoleHandlers
     }
 
     public static async Task<IResult> Create(CreateRoleDto? inputDto,
-        [FromServices] IRoleService roleService)
+        HttpContext httpContext,
+        [FromServices] IRoleService roleService,
+        [FromServices] ILoggerFactory loggerFactory)
     {
         if (inputDto == null)
         {
             return Results.BadRequest(ResponseObject.BadBody());
+        }
+
+        var logger = loggerFactory.CreateLogger(nameof(RoleHandlers));
+
+        try
+        {
+            var validationResult = inputDto.Validate();
+            if (!validationResult.Succeeded)
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(validationResult.Error));
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            var email = httpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
+            logger.LogError(ex, "Error happened while validating create role request by {email}. Field value: {fieldValue}, reference value: {refValue}.",
+                email, ex.FieldValue, ex.ReferenceValue);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         var role = await roleService.GetRoleByNameAsync(inputDto.Name);
@@ -111,12 +133,16 @@ public static class RoleHandlers
     }
 
     public static async Task<IResult> Update(string? role, UpdateRoleDto? inputDto,
-        [FromServices] IRoleService roleService)
+        HttpContext httpContext,
+        [FromServices] IRoleService roleService,
+        [FromServices] ILoggerFactory loggerFactory)
     {
         if (role == null || inputDto == null)
         {
             return Results.BadRequest(ResponseObject.BadQuery());
         }
+
+        var logger = loggerFactory.CreateLogger(nameof(RoleHandlers));
 
         var existingRole = await roleService.GetRoleByNameAsync(role);
         existingRole ??= await roleService.GetRoleByIdAsync(role);
@@ -124,6 +150,22 @@ public static class RoleHandlers
         if (existingRole == null)
         {
             return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
+        }
+
+        try
+        {
+            var validationResult = inputDto.Validate();
+            if (!validationResult.Succeeded)
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(validationResult.Error));
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            var email = httpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
+            logger.LogError(ex, "Error happened while validating update role request by {email}. Field value: {fieldValue}, reference value: {refValue}.",
+                email, ex.FieldValue, ex.ReferenceValue);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         var targetRole = await roleService.GetRoleByNameAsync(inputDto.Name);

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using static SignalRDemo.Server.Utils.Validators.Validators;
+using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Utils.Validators;
 
@@ -48,9 +49,9 @@ public static partial class UserValidator
                 errors.Add("Password cannot be empty");
             }
 
-            if (password.Length < 8)
+            if (password.Length < UserPasswordMinimumLength)
             {
-                errors.Add("Password should be at least 8 characters");
+                errors.Add($"Password should be at least {UserPasswordMinimumLength} characters");
             }
 
             if (!PasswordOneUppercaseRequirementRegex().IsMatch(password))
