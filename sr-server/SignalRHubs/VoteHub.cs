@@ -67,7 +67,7 @@ public class VoteHub : Hub<IVoteHubClient>
         catch (Exception ex)
         {
             LogHelper.LogError(logger, $"Unknown error happened while user '{userName}' subcribing vote '{voteId}'", 
-                exception: ex);
+                ex);
         }
 
         LogHelper.LogInformation(logger, $"User '{userName}' subscribed to vote '{voteId}'");
@@ -117,7 +117,7 @@ public class VoteHub : Hub<IVoteHubClient>
         catch (Exception ex)
         {
             LogHelper.LogError(logger, $"Unknown error happened while User '{userName}' unsubscribing from vote '{voteId}'",
-                exception: ex);
+                ex);
         }
 
         LogHelper.LogInformation(logger, $"User '{userName}' unsubscribed from vote '{voteId}'");

@@ -11,7 +11,7 @@ public static class LogHelper
     /// <exception cref="ArgumentNullException"></exception>
     /// <inheritdoc cref="LoggerExtensions.LogInformation(ILogger, EventId, Exception?, string?, object?[])"/>
     public static void LogInformation(ILogger logger, string formattedLogText,
-        EventId eventId = default, Exception? exception = null,
+        Exception? exception = null, EventId eventId = default,
         [CallerMemberName] string callerName = "")
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -21,7 +21,7 @@ public static class LogHelper
     /// <summary>Print a warning level log along with the log caller name</summary>
     /// <inheritdoc cref="LogInformation"/>
     public static void LogWarning(ILogger logger, string logText,
-        EventId eventId = default, Exception? exception = null,
+        Exception? exception = null, EventId eventId = default,
         [CallerMemberName] string callerName = "")
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -31,7 +31,7 @@ public static class LogHelper
     /// <summary>Print an error level log along with the log caller name</summary>
     /// <inheritdoc cref="LogInformation"/>
     public static void LogError(ILogger logger, string logText,
-        EventId eventId = default, Exception? exception = null,
+        Exception? exception = null, EventId eventId = default,
         [CallerMemberName] string callerName = "")
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -41,7 +41,7 @@ public static class LogHelper
     /// <summary>Print a critical level log along with the log caller name</summary>
     /// <inheritdoc cref="LogInformation"/>
     public static void LogCritical(ILogger logger, string logText,
-        EventId eventId = default, Exception? exception = null,
+        Exception? exception = null, EventId eventId = default,
         [CallerMemberName] string callerName = "")
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -51,7 +51,7 @@ public static class LogHelper
     /// <summary>Print a debug level log along with the log caller name</summary>
     /// <inheritdoc cref="LogInformation"/>
     public static void LogDebug(ILogger logger, string logText,
-        EventId eventId = default, Exception? exception = null,
+        Exception? exception = null, EventId eventId = default,
         [CallerMemberName] string callerName = "")
     {
         ArgumentNullException.ThrowIfNull(logger);
