@@ -16,17 +16,21 @@ public static class RoleHandlers
     {
         routes.RequireAuthorization(RoleManagerAuthorizationPolicyName);
 
+        routes.MapGet("/", GetMany);
         routes.MapGet("/{role}", Get);
         routes.MapGet("/{role}/users", GetRoleUsers);
-        routes.MapGet("/user/{user}", GetUserRoles);
-        routes.MapPost("/create", Create);
-        routes.MapPut("/update/{role}", Update);
-        routes.MapDelete("/delete/{role}", Delete);
+        routes.MapGet("/users/{user}", GetUserRoles);
+        routes.MapPost("/", Create);
+        routes.MapPut("/{role}", Update);
+        routes.MapDelete("/{role}", Delete);
         routes.MapPost("/{role}/assign/{user}", AssignUser);
         routes.MapPost("/{role}/remove/{user}", RemoveUser);
 
         return routes;
     }
+
+    public static async Task<IResult> GetMany([FromServices] IRoleService roleService)
+        => Results.Ok(ResponseObject.Success((await roleService.GetAllRolesAsync()).Select(r => r.ToResponse())));
 
     public static async Task<IResult> Get(string? role,
         [FromServices] IRoleService roleService)
