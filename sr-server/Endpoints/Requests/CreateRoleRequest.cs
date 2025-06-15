@@ -1,12 +1,10 @@
+using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Utils.Validators.RoleValidators;
 
-namespace SignalRDemo.Server.Models.Dtos;
+namespace SignalRDemo.Server.Endpoints.Requests;
 
-public class UpdateRoleDto : BaseDto
+public record CreateRoleRequest(string Name, string? Description) : BaseRequest
 {
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; } = string.Empty;
-
     public override FieldValidationResult Validate(object? reference = null)
     {
         var validationResult = FieldValidationResult.Create();

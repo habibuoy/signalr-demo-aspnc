@@ -1,13 +1,10 @@
+using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Utils.Validators.VoteValidators;
 
-namespace SignalRDemo.Server.Models.Dtos;
+namespace SignalRDemo.Server.Endpoints.Requests;
 
-public class GiveVoteDto : BaseDto
+public record GiveVoteRequest(string VoteId, int SubjectId) : BaseRequest
 {
-
-    public required string VoteId { get; set; }
-    public required int SubjectId { get; set; }
-
     public override FieldValidationResult Validate(object? reference = null)
     {
         var result = FieldValidationResult.Create();

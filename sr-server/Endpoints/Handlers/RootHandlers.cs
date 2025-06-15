@@ -2,10 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using SignalRDemo.Server.Endpoints.Requests;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Models.Dtos;
-using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Utils.Validators;
 
@@ -22,7 +21,7 @@ public static class RootHandlers
         return routes;
     }
 
-    public static async Task<IResult> Register(CreateUserDto userDto,
+    public static async Task<IResult> Register(CreateUserRequest request,
         [FromServices] IUserService userService,
         [FromServices] ILoggerFactory loggerFactory)
     {
@@ -30,7 +29,7 @@ public static class RootHandlers
 
         try
         {
-            var validation = userDto.Validate();
+            var validation = request.Validate();
             if (!validation.Succeeded) return Results.BadRequest(ResponseObject.ValidationError(validation.Error));
         }
         catch (ModelFieldValidatorException ex)
@@ -41,7 +40,7 @@ public static class RootHandlers
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        var email = userDto.Email;
+        var email = request.Email;
         var user = await userService.GetUserByEmailAsync(email);
         if (user != null)
         {
@@ -50,7 +49,7 @@ public static class RootHandlers
 
         try
         {
-            user = userDto.ToUser();
+            user = request.ToUser();
         }
         catch (DomainException ex)
         {
@@ -61,7 +60,7 @@ public static class RootHandlers
             else
             {
                 logger.LogError(ex, "Domain error happened while creating User entity of {email}",
-                    userDto.Email);
+                    request.Email);
                 return Results.InternalServerError(ResponseObject.ServerError());
             }
         }
@@ -73,22 +72,22 @@ public static class RootHandlers
                 $"Error on our side while registering {email}"));
         }
 
-        return Results.Ok(ResponseObject.Success(user.ToDto()));
+        return Results.Ok(ResponseObject.Success(user.ToResponse()));
     }
 
-    public static async Task<IResult> Login(LoginUserDto userDto,
+    public static async Task<IResult> Login(LoginUserRequest request,
         HttpContext httpContext,
         [FromServices] IUserService userService,
         [FromServices] IRoleService roleService)
     {
-        var email = userDto.Email;
+        var email = request.Email;
         var user = await userService.GetUserByEmailAsync(email);
         if (user == null)
         {
             return Results.NotFound(ResponseObject.Create($"Email {email} is not registered"));
         }
 
-        var valid = await userService.AuthenticateAsync(user, userDto.Password);
+        var valid = await userService.AuthenticateAsync(user, request.Password);
         if (!valid)
         {
             return Results.BadRequest(ResponseObject.Create($"Invalid email or password"));
@@ -114,7 +113,7 @@ public static class RootHandlers
 
         await httpContext.SignInAsync(new ClaimsPrincipal(claimsIdentity), authenticationProperties);
 
-        return Results.Ok(ResponseObject.Success(user.ToDto()));
+        return Results.Ok(ResponseObject.Success(user.ToResponse()));
     }
 
     public static async Task<IResult> Logout(HttpContext httpContext,

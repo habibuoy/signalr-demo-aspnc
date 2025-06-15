@@ -1,8 +1,8 @@
 using SignalRDemo.Server.Utils.Validators;
 
-namespace SignalRDemo.Server.Models.Dtos;
+namespace SignalRDemo.Server.Endpoints.Requests;
 
-public abstract class BaseDto
+public abstract record BaseRequest
 {
     /// <summary>
     /// Validate the DTO

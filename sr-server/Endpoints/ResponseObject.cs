@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Responses;
+namespace SignalRDemo.Server.Endpoints;
 
 public class ResponseObject
 {
@@ -21,11 +21,7 @@ public class ResponseObject
     /// <returns></returns>
     public static ResponseObject Create(string message, object? result = null)
     {
-        return new ResponseObject()
-        {
-            Message = message,
-            Result = result
-        };
+        return new ResponseObject(message, result);
     }
 
     /// <summary>
@@ -35,11 +31,7 @@ public class ResponseObject
     /// <returns></returns>
     public static ResponseObject Success(object result)
     {
-        return new ResponseObject()
-        {
-            Message = "",
-            Result = result
-        };
+        return new ResponseObject("", result);
     }
 
     /// <summary>

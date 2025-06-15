@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
@@ -36,7 +35,7 @@ public static class UserHandlers
 
         var userRoles = await roleService.GetUserRolesByUserAsync(existingUser);
 
-        return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleDto())));
+        return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleResponse())));
     }
 
     public static async Task<IResult> GetVoteInputs( HttpContext httpContext,
@@ -50,6 +49,6 @@ public static class UserHandlers
         }
 
         var votes = await voteService.GetVoteInputsByUserIdAsync(existingUser.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToDto())));
+        return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToResponse())));
     }
 }

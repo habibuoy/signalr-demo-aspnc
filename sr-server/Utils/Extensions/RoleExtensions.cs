@@ -1,19 +1,16 @@
+using SignalRDemo.Server.Endpoints.Responses;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Models.Dtos;
 
 namespace SignalRDemo.Server.Utils.Extensions;
 
 public static class RoleExtensions
 {
-    public static RoleDto ToDto(this Role role)
+    public static RoleResponse ToResponse(this Role role)
     {
-        return new RoleDto
-        {
-            Id = role.Id,
-            Name = role.Name,
-            NormalizedName = role.NormalizedName,
-            Description = role.Description,
-            CreatedTime = role.CreatedTime
-        };
+        return new(role.Id,
+            role.Name,
+            role.NormalizedName,
+            role.Description,
+            role.CreatedTime);
     }
 }

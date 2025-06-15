@@ -1,41 +1,27 @@
+using SignalRDemo.Server.Endpoints.Responses;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Models.Dtos;
 using SignalRDemo.Shared;
 
 namespace SignalRDemo.Server.Utils.Extensions;
 
 public static class VoteExtensions
 {
-    public static VoteDto ToDto(this Vote vote)
+    public static VoteResponse ToResponse(this Vote vote)
     {
-        var subjects = new List<VoteSubjectDto>();
+        var subjects = new List<VoteSubjectResponse>();
         int totalCount = 0;
 
         foreach (var subject in vote.Subjects)
         {
             int count = subject.Voters.Count;
 
-            subjects.Add(new()
-            {
-                Id = subject.Id,
-                Name = subject.Name,
-                VoteCount = count
-            });
+            subjects.Add(new(subject.Id, subject.Name, count));
 
             totalCount += count;
         }
 
-        return new VoteDto()
-        {
-            Id = vote.Id,
-            Title = vote.Title,
-            Subjects = subjects,
-            CreatedTime = vote.CreatedTime,
-            ExpiredTime = vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value : null,
-            MaximumCount = vote.MaximumCount,
-            CurrentTotalCount = totalCount,
-            CreatorId = vote.CreatorId
-        };
+        return new VoteResponse(vote.Id, vote.Title, subjects, totalCount, vote.CreatedTime,
+            vote.ExpiredTime.HasValue ? vote.ExpiredTime.Value : null, vote.MaximumCount, vote.CreatorId);
     }
 
     public static VoteCreatedProperties ToVoteCreatedProperties(this Vote vote)

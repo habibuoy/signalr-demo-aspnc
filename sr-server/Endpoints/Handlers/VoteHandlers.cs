@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SignalRDemo.Server.Endpoints.Requests;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Models.Dtos;
-using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Configurations.AppConstants;
@@ -36,20 +35,20 @@ public static class VoteHandlers
         return routes;
     }
 
-    public static async Task<IResult> GetMany([AsParameters] VotesQueryDto queryDto,
+    public static async Task<IResult> GetMany([AsParameters] VotesQueryRequest request,
         [FromServices] IVoteService voteService)
     {
-        if (queryDto == null)
+        if (request == null)
         {
             return Results.BadRequest(ResponseObject.BadQuery());
         }
 
-        var votes = await voteService.GetVotesAsync(queryDto.Count,
-            queryDto.SortBy, queryDto.SortOrder);
+        var votes = await voteService.GetVotesAsync(request.Count,
+            request.SortBy, request.SortOrder);
 
         votes ??= [];
 
-        return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToDto())));
+        return Results.Ok(ResponseObject.Success(votes.Select(v => v.ToResponse())));
     }
 
     public static async Task<IResult> Get(string? id,
@@ -67,7 +66,7 @@ public static class VoteHandlers
             return Results.NotFound(ResponseObject.NotFound());
         }
 
-        return Results.Ok(ResponseObject.Success(vote.ToDto()));
+        return Results.Ok(ResponseObject.Success(vote.ToResponse()));
     }
 
     public static async Task<IResult> GetUserVoteInputs(string? user,
@@ -89,16 +88,16 @@ public static class VoteHandlers
 
         var voteInputs = await voteService.GetVoteInputsByUserIdAsync(existingUser.Id);
 
-        return Results.Ok(ResponseObject.Success(voteInputs.Select(vi => vi.ToDto())));
+        return Results.Ok(ResponseObject.Success(voteInputs.Select(vi => vi.ToResponse())));
     }
 
-    public static async Task<IResult> Create(CreateVoteDto? inputDto,
+    public static async Task<IResult> Create(CreateVoteRequest? request,
         HttpContext httpContext,
         [FromServices] IVoteService voteService,
         [FromServices] IUserService userService,
         [FromServices] ILoggerFactory loggerFactory)
     {
-        if (inputDto == null)
+        if (request == null)
         {
             return Results.BadRequest(ResponseObject.BadBody());
         }
@@ -109,7 +108,7 @@ public static class VoteHandlers
 
         try
         {
-            var dtoValidation = inputDto.Validate();
+            var dtoValidation = request.Validate();
             if (!dtoValidation.Succeeded)
             {
                 return Results.BadRequest(ResponseObject.ValidationError(dtoValidation.Error));
@@ -126,7 +125,7 @@ public static class VoteHandlers
         Vote vote;
         try
         {
-            vote = inputDto.ToVote(await userService.GetUserByIdAsync(userId!));
+            vote = request.ToVote(await userService.GetUserByIdAsync(userId!));
         }
         catch (DomainException ex)
         {
@@ -158,14 +157,14 @@ public static class VoteHandlers
             logger.LogError(ex, "Unexpected error happened while writing created vote notification");
         }
 
-        return Results.Created($"https://{httpContext.Request.Host}/vote/{vote.Id}", ResponseObject.Success(vote.ToDto()));
+        return Results.Created($"https://{httpContext.Request.Host}/vote/{vote.Id}", ResponseObject.Success(vote.ToResponse()));
     }
 
-    public static async Task<IResult> Input([AsParameters] GiveVoteDto inputVote,
+    public static async Task<IResult> Input([AsParameters] GiveVoteRequest request,
         HttpContext httpContext,
         [FromServices] ILoggerFactory loggerFactory)
     {
-        if (inputVote == null)
+        if (request == null)
         {
             return Results.BadRequest(ResponseObject.BadQuery());
         }
@@ -176,7 +175,7 @@ public static class VoteHandlers
         string? email = httpContext.User.FindFirstValue(ClaimTypes.Email);
         try
         {
-            var inputValidation = inputVote.Validate();
+            var inputValidation = request.Validate();
             if (!inputValidation.Succeeded)
             {
                 return Results.BadRequest(ResponseObject.ValidationError(inputValidation.Error));
@@ -204,7 +203,7 @@ public static class VoteHandlers
                 using var scope = httpContext.RequestServices.CreateScope();
                 var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
 
-                vote = (await voteService.GetVoteByIdAsync(inputVote.VoteId))!;
+                vote = (await voteService.GetVoteByIdAsync(request.VoteId))!;
 
                 if (vote == null)
                 {
@@ -226,7 +225,7 @@ public static class VoteHandlers
                         statusCode: StatusCodes.Status403Forbidden);
                 }
 
-                if (vote.Subjects.FirstOrDefault(s => s.Id == inputVote.SubjectId) is not VoteSubject subject)
+                if (vote.Subjects.FirstOrDefault(s => s.Id == request.SubjectId) is not VoteSubject subject)
                 {
                     return Results.NotFound(ResponseObject.NotFound());
                 }
@@ -278,15 +277,15 @@ public static class VoteHandlers
             logger.LogError(ex, "Unexpected error happened while writing updated vote notification");
         }
 
-        return Results.Ok(ResponseObject.Success(vote.ToDto()));
+        return Results.Ok(ResponseObject.Success(vote.ToResponse()));
     }
 
-    public static async Task<IResult> InputQueue([AsParameters] GiveVoteDto inputVote,
+    public static async Task<IResult> InputQueue([AsParameters] GiveVoteRequest request,
         HttpContext httpContext,
         [FromServices] IVoteQueueWriter voteQueue,
         [FromServices] ILoggerFactory loggerFactory)
     {
-        if (inputVote == null)
+        if (request == null)
         {
             return Results.BadRequest(ResponseObject.BadQuery());
         }
@@ -297,7 +296,7 @@ public static class VoteHandlers
         string email = httpContext.User.FindFirstValue(ClaimTypes.Email)!;
         try
         {
-            var inputValidation = inputVote.Validate();
+            var inputValidation = request.Validate();
             if (!inputValidation.Succeeded)
             {
                 return Results.BadRequest(ResponseObject.ValidationError(inputValidation.Error));
@@ -315,19 +314,19 @@ public static class VoteHandlers
         {
             await voteQueue.WriteAsync(new VoteQueueItem()
             {
-                VoteId = inputVote.VoteId,
-                SubjectId = inputVote.SubjectId.ToString(),
+                VoteId = request.VoteId,
+                SubjectId = request.SubjectId.ToString(),
                 UserId = userId
             });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unknown error happened while user {email} queuing vote {voteId}",
-                email, inputVote.VoteId);
+                email, request.VoteId);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        return Results.Ok(ResponseObject.Success($"Vote on {inputVote.VoteId} and subject id {inputVote.SubjectId} was succesfully queued"));
+        return Results.Ok(ResponseObject.Success($"Vote on {request.VoteId} and subject id {request.SubjectId} was succesfully queued"));
     }
 
     public static async Task<IResult> Delete(string? id,

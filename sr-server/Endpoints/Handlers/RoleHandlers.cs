@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using SignalRDemo.Server.Endpoints.Requests;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Models.Dtos;
-using SignalRDemo.Server.Responses;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Configurations.AppConstants;
@@ -44,7 +43,7 @@ public static class RoleHandlers
             return Results.NotFound(ResponseObject.Create($"Role {role} not found"));
         }
 
-        return Results.Ok(ResponseObject.Success(existingRole.ToDto()));
+        return Results.Ok(ResponseObject.Success(existingRole.ToResponse()));
     }
 
     public static async Task<IResult> GetRoleUsers(string? role,
@@ -87,15 +86,15 @@ public static class RoleHandlers
 
         var userRoles = await roleService.GetUserRolesByUserAsync(existingUser);
 
-        return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleDto())));
+        return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleResponse())));
     }
 
-    public static async Task<IResult> Create(CreateRoleDto? inputDto,
+    public static async Task<IResult> Create(CreateRoleRequest? request,
         HttpContext httpContext,
         [FromServices] IRoleService roleService,
         [FromServices] ILoggerFactory loggerFactory)
     {
-        if (inputDto == null)
+        if (request == null)
         {
             return Results.BadRequest(ResponseObject.BadBody());
         }
@@ -104,7 +103,7 @@ public static class RoleHandlers
 
         try
         {
-            var validationResult = inputDto.Validate();
+            var validationResult = request.Validate();
             if (!validationResult.Succeeded)
             {
                 return Results.BadRequest(ResponseObject.ValidationError(validationResult.Error));
@@ -119,15 +118,15 @@ public static class RoleHandlers
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        var role = await roleService.GetRoleByNameAsync(inputDto.Name);
+        var role = await roleService.GetRoleByNameAsync(request.Name);
         if (role != null)
         {
-            return Results.Conflict(ResponseObject.Create($"Role {inputDto.Name} already exists"));
+            return Results.Conflict(ResponseObject.Create($"Role {request.Name} already exists"));
         }
 
         try
         {
-            role = inputDto.ToRole();
+            role = request.ToRole();
         }
         catch (DomainException ex)
         {
@@ -150,15 +149,15 @@ public static class RoleHandlers
             return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
         }
 
-        return Results.Ok(ResponseObject.Success(role.ToDto()));
+        return Results.Ok(ResponseObject.Success(role.ToResponse()));
     }
 
-    public static async Task<IResult> Update(string? role, UpdateRoleDto? inputDto,
+    public static async Task<IResult> Update(string? role, UpdateRoleRequest? request,
         HttpContext httpContext,
         [FromServices] IRoleService roleService,
         [FromServices] ILoggerFactory loggerFactory)
     {
-        if (role == null || inputDto == null)
+        if (role == null || request == null)
         {
             return Results.BadRequest(ResponseObject.BadQuery());
         }
@@ -175,7 +174,7 @@ public static class RoleHandlers
 
         try
         {
-            var validationResult = inputDto.Validate();
+            var validationResult = request.Validate();
             if (!validationResult.Succeeded)
             {
                 return Results.BadRequest(ResponseObject.ValidationError(validationResult.Error));
@@ -190,13 +189,13 @@ public static class RoleHandlers
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        var targetRole = await roleService.GetRoleByNameAsync(inputDto.Name);
+        var targetRole = await roleService.GetRoleByNameAsync(request.Name);
         if (targetRole != null)
         {
-            return Results.Conflict(ResponseObject.Create($"Role {inputDto.Name} already exists"));
+            return Results.Conflict(ResponseObject.Create($"Role {request.Name} already exists"));
         }
 
-        var updatedRole = inputDto.ToRole(existingRole.Id);
+        var updatedRole = request.ToRole(existingRole.Id);
 
         var result = await roleService.UpdateRoleAsync(updatedRole);
         if (!result)
@@ -204,7 +203,7 @@ public static class RoleHandlers
             return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
         }
 
-        return Results.Ok(ResponseObject.Success(existingRole.ToDto()));
+        return Results.Ok(ResponseObject.Success(existingRole.ToResponse()));
     }
 
     public static async Task<IResult> Delete(string? role,
@@ -269,7 +268,7 @@ public static class RoleHandlers
             return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
         }
 
-        return Results.Ok(ResponseObject.Success(userRole.ToDto()));
+        return Results.Ok(ResponseObject.Success(userRole.ToResponse()));
     }
 
     public static async Task<IResult> RemoveUser(string? user, string? role,

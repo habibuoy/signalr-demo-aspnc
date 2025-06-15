@@ -1,20 +1,17 @@
+using SignalRDemo.Server.Endpoints.Responses;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Models.Dtos;
 
 namespace SignalRDemo.Server.Utils.Extensions;
 
 public static class VoteSubjectInputExtensions
 {
-    public static VoteInputDto ToDto(this VoteSubjectInput subjectInput)
+    public static VoteInputResponse ToResponse(this VoteSubjectInput subjectInput)
     {
-        return new()
-        {
-            Id = subjectInput.Id,
-            VoteId = subjectInput.VoteSubject!.VoteId,
-            VoteTitle = subjectInput.VoteSubject!.Vote!.Title,
-            SubjectId = subjectInput.SubjectId,
-            SubjectName = subjectInput.VoteSubject!.Name,
-            InputTime = subjectInput.InputTime,
-        };
+        return new(subjectInput.Id,
+            subjectInput.SubjectId,
+            subjectInput.VoteSubject!.Name,
+            subjectInput.VoteSubject!.VoteId,
+            subjectInput.VoteSubject!.Vote!.Title,
+            subjectInput.InputTime);
     }
 }

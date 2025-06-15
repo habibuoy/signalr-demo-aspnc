@@ -2,30 +2,11 @@ using System.Text.Json;
 using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Utils.Validators.VoteValidators;
 
-namespace SignalRDemo.Server.Models.Dtos;
+namespace SignalRDemo.Server.Endpoints.Requests;
 
-public class CreateVoteDto : BaseDto
+public record CreateVoteRequest(string Title, string[] Subjects, int? Duration, int? MaximumCount)
+    : BaseRequest
 {
-    public required string Title { get; set; } = string.Empty;
-    public required string[] Subjects { get; set; } = [];
-    public int? Duration { get; set; }
-    public int? MaximumCount { get; set; }
-
-    public static async ValueTask<CreateVoteDto?> BindAsync(HttpContext httpContext)
-    {
-        try
-        {
-            var dto = await httpContext.Request.ReadFromJsonAsync<CreateVoteDto>();
-            return dto;
-        }
-        catch (JsonException ex)
-        {
-            httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
-                .LogInformation("Failed to parse CreateVoteDto: {msg}", ex.Message);
-            return null;
-        }
-    }
-
     public override FieldValidationResult Validate(object? reference = null)
     {
         var result = FieldValidationResult.Create();
@@ -47,5 +28,20 @@ public class CreateVoteDto : BaseDto
         }
 
         return result;
+    }
+
+    public static async ValueTask<CreateVoteRequest?> BindAsync(HttpContext httpContext)
+    {
+        try
+        {
+            var dto = await httpContext.Request.ReadFromJsonAsync<CreateVoteRequest>();
+            return dto;
+        }
+        catch (JsonException ex)
+        {
+            httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
+                .LogInformation("Failed to parse CreateVoteDto: {msg}", ex.Message);
+            return null;
+        }
     }
 }

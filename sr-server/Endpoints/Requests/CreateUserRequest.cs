@@ -1,14 +1,11 @@
+using SignalRDemo.Server.Utils.Validators;
 using static SignalRDemo.Server.Utils.Validators.UserValidator;
 
-namespace SignalRDemo.Server.Models.Dtos;
+namespace SignalRDemo.Server.Endpoints.Requests;
 
-public class CreateUserDto : BaseDto
+public record CreateUserRequest(string Email, string Password, string? FirstName, string LastName) 
+    : BaseRequest
 {
-    public required string Email { get; set; }
-    public required string Password { get; set; }
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
-
     public override FieldValidationResult Validate(object? reference = null)
     {
         var validationResult = FieldValidationResult.Create();
