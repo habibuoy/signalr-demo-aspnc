@@ -13,7 +13,6 @@ public interface IVoteService
     Task<IEnumerable<VoteSubjectInput>> GetVoteInputsByUserIdAsync(string userId);
     Task<IEnumerable<VoteSubjectInput>?> GetVoteInputsByVoteIdAsync(string voteId);
     Task<bool> AddVoteAsync(Vote vote);
-    Task<bool> RemoveVoteAsync(string id);
     /// <summary>
     /// Update the vote asynchronously
     /// </summary>

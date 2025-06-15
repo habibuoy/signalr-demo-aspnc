@@ -150,44 +150,6 @@ public class DbVoteService : IVoteService
         return vote.Subjects.SelectMany(s => s.Voters);
     }
 
-    public async Task<bool> RemoveVoteAsync(string id)
-    {
-        bool result = false;
-
-        try
-        {
-            var vote = await GetVoteByIdAsync(id);
-            if (vote != null)
-            {
-                dbContext.Votes.Remove(vote);
-                await dbContext.SaveChangesAsync();
-
-                result = true;
-
-                LogInformation(logger, $"Successfully removed vote {vote.Title} ({vote.Id})");
-            }
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            LogWarning(logger, $"DB concurrency error happened while trying to remove vote {id}: {ex.Message}");
-        }
-        catch (DbUpdateException ex)
-        {
-            LogWarning(logger, $"DB error happened while trying to remove vote {id}: {ex.Message}");
-        }
-        catch (OperationCanceledException ex)
-        {
-            LogWarning(logger, $"Task cancelled while trying to remove vote {id}: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            LogError(logger, $"Unexpected error happened while trying to remove vote {id}",
-                ex);
-        }
-
-        return result;
-    }
-
     public async Task<bool> UpdateVoteAsync(string voteId, Vote vote)
     {
         bool result = false;
