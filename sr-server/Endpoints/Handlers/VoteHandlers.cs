@@ -19,19 +19,19 @@ public static class VoteHandlers
 
         routes.MapGet("/", GetMany);
         routes.MapGet("/{id}", Get);
-        routes.MapPost("/", Input);
-        routes.MapPost("/queue", InputQueue);
+        routes.MapPost("/inputs", Input);
+        routes.MapPost("/inputs/queue", InputQueue);
 
         routes.MapGet("/can-manage", () => Results.Ok(ResponseObject.Create(null!)))
-            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName); ;
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);
 
-        routes.MapGet("/inputs/user/{user}", GetUserVoteInputs)
+        routes.MapGet("/inputs/users/{user}", GetUserVoteInputs)
             .RequireAuthorization(VoteInspectorAuthorizationPolicyName);
 
-        routes.MapPost("/create", Create)
-            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName); ;
+        routes.MapPost("/", Create)
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);
         routes.MapDelete("/{id}", Delete)
-            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName); ;
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);
 
         return routes;
     }
@@ -208,7 +208,7 @@ public static class VoteHandlers
 
                 if (vote == null)
                 {
-                    return Results.NotFound(ResponseObject.NotFound());
+                    return Results.NotFound(ResponseObject.Create($"Vote with id {request.VoteId} not found"));
                 }
 
                 var inputs = vote.Subjects.SelectMany(s => s.Voters);
@@ -228,7 +228,7 @@ public static class VoteHandlers
 
                 if (vote.Subjects.FirstOrDefault(s => s.Id == request.SubjectId) is not VoteSubject subject)
                 {
-                    return Results.NotFound(ResponseObject.NotFound());
+                    return Results.NotFound(ResponseObject.Create($"Subject id {request.SubjectId} not found"));
                 }
 
                 var result = await voteService.GiveVoteAsync(subject.Id.ToString(), userId);
@@ -282,6 +282,7 @@ public static class VoteHandlers
 
     public static async Task<IResult> InputQueue([AsParameters] GiveVoteRequest request,
         HttpContext httpContext,
+        [FromServices] IVoteService voteService,
         [FromServices] IVoteQueueWriter voteQueue,
         [FromServices] ILoggerFactory loggerFactory)
     {
@@ -308,6 +309,25 @@ public static class VoteHandlers
                 $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
                 ex);
             return Results.InternalServerError(ResponseObject.ServerError());
+        }
+
+        var vote = await voteService.GetVoteByIdAsync(request.VoteId);
+
+        if (vote == null)
+        {
+            return Results.NotFound(ResponseObject.Create($"Vote with id {request.VoteId} not found"));
+        }
+
+        if (vote.IsClosed()
+            || !vote.CanVote())
+        {
+            return Results.Json(ResponseObject.Create("Vote has been closed or exceeded maximum count"),
+                statusCode: StatusCodes.Status403Forbidden);
+        }
+
+        if (vote.Subjects.FirstOrDefault(s => s.Id == request.SubjectId) is not VoteSubject subject)
+        {
+            return Results.NotFound(ResponseObject.Create($"Subject id {request.SubjectId} not found"));
         }
 
         try
