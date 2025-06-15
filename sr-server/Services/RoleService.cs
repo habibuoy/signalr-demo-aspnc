@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SignalRDemo.Server.Datas;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
 
@@ -29,69 +30,96 @@ public class RoleService : IRoleService
     {
         var name = role.Name;
 
+        Role? result = null;
+
         var existing = await GetRoleByNameAsync(name);
         if (existing != null)
         {
-            logger.LogWarning("Trying to create role with name {name} that already exists.", name);
-            return null;
+            LogWarning(logger, $"Trying to create role with name {name} that already exists.");
+            return result;
         }
 
-        dbContext.Roles.Add(role);
         try
         {
+            dbContext.Roles.Add(role);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation("Role {name} created successfully.", name);
+            result = role;
+
+            LogInformation(logger, $"Successfully created role {name}.");
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "DB Error happened while creating role {name}.", name);
-            return null;
+            LogWarning(logger, $"DB Error happened while creating role {name}: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected Error happened while creating role {name}",
+                ex);
         }
 
-        return role;
+        return result;
     }
 
     public async Task<bool> UpdateRoleAsync(Role role)
     {
         var existing = await GetRoleByIdAsync(role.Id);
+
+        bool result = false;
+
         if (existing == null)
         {
-            logger.LogWarning("Trying to update role with ID {id} that does not exist.", role.Id);
-            return false;
+            LogWarning(logger, $"Trying to update role with ID {role.Id} that does not exist.");
+            return result;
         }
 
         existing.Name = role.Name;
         existing.NormalizedName = role.NormalizedName;
         existing.Description = role.Description;
 
-        dbContext.Roles.Update(existing);
         try
         {
+            dbContext.Roles.Update(existing);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation("Role {name} updated successfully.", role.Name);
-            return true;
+            result = true;
+
+            LogInformation(logger, $"Successfully updated role {role.Name}.");
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "DB Error happened while updating role {name}.", role.Name);
-            return false;
+            LogWarning(logger, $"DB Error happened while updating role {role.Name}: {ex.Message}");
         }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected Error happened while updating role {role.Name}",
+                ex);
+        }
+
+        return result;
     }
 
     public async Task<bool> DeleteRoleAsync(Role role)
     {
-        dbContext.Roles.Remove(role);
+        bool result = false;
+
         try
         {
+            dbContext.Roles.Remove(role);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation("Role {name} deleted successfully.", role.Name);
-            return true;
+            result = true;
+
+            LogInformation(logger, $"Role {role.Name} deleted successfully.");
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "DB Error happened while deleting role {name}.", role.Name);
-            return false;
+            LogWarning(logger, $"DB Error happened while deleting role {role.Name}: {ex.Message}");
         }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected Error happened while deleting role {role.Name}",
+                ex);
+        }
+
+        return result;
     }
 
     public Task<UserRole?> GetUserRoleAsync(User user, Role role) =>
@@ -124,54 +152,76 @@ public class RoleService : IRoleService
 
     public async Task<UserRole?> AssignUserToRoleAsync(User user, Role role)
     {
-        ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(role);
-
-        var userRole = UserRole.Create(user.Id, role.Id);
-
-        dbContext.UserRoles.Add(userRole);
+        UserRole? result = null;
+        if (user == null || role == null)
+        {
+            return result;
+        }
 
         try
         {
+            var userRole = UserRole.Create(user.Id, role.Id);
+            dbContext.UserRoles.Add(userRole);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation("User {email} ({userId}) assigned to role {roleName} ({roleId}) successfully.",
-                user.Email, user.Id, role.Name, role.Id);
-            return userRole;
+
+            result = userRole;
+
+            LogInformation(logger, $"User {user.Email} ({user.Id}) assigned to " +
+                $"role {role.Name} ({role.Id}) successfully.");
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "DB Error happened while assigning role {roleName} ({roleId}) from user {email} ({userId}).",
-                role.Name, role.Id, user.Email, user.Id);
-            return null;
+            LogWarning(logger, $"DB Error happened while assigning role {role.Name} ({role.Id}) " +
+                $"to user {user.Email} ({user.Id}): {ex.Message}");
         }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected error happened while assigning role {role.Name} ({role.Id}) " +
+                $"to user {user.Email} ({user.Id})",
+                ex);
+        }
+
+        return result;
     }
 
     public async Task<bool> RemoveUserFromRoleAsync(User user, Role role)
     {
-        ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(role);
+        bool result = false;
+        if (user == null || role == null)
+        {
+            return result;
+        }
 
         var userRole = await GetUserRoleAsync(user, role);
         if (userRole == null)
         {
-            logger.LogWarning("Trying to remove role {roleName} ({roleId}) from user {email} ({userId}) which does not have that role",
-                role.Name, role.Id, user.Email, user.Id);
-            return false;
+            LogWarning(logger, $"Trying to remove role {role.Name} ({role.Id}) from user {user.Email} ({user.Id}) " +
+                "who does not have that role");
+            return result;
         }
 
-        dbContext.UserRoles.Remove(userRole);
         try
         {
+            dbContext.UserRoles.Remove(userRole);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation("User {email} ({userId}) removed from role {roleName} ({roleId}) successfully.",
-                user.Email, user.Id, role.Name, role.Id);
-            return true;
+
+            result = true;
+
+            LogInformation(logger, $"User {user.Email} ({user.Id}) removed from " +
+                $"role {role.Name} ({role.Id}) successfully.");
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "DB Error happened while removing role {roleName} ({roleId}) from user {email} ({userId}).",
-                role.Name, role.Id, user.Email, user.Id);
-            return false;
+            LogWarning(logger, $"DB Error happened while removing role {role.Name} ({role.Id}) " +
+                $"from user {user.Email} ({user.Id}): {ex.Message}.");
         }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected error happened while assigning role {role.Name} ({role.Id}) " +
+                $"to user {user.Email} ({user.Id})",
+                ex);
+        }
+
+        return result;
     }
 }

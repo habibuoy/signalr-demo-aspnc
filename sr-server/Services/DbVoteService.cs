@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SignalRDemo.Server.Datas;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
 
@@ -20,6 +21,8 @@ public class DbVoteService : IVoteService
 
     public async Task<bool> AddVoteAsync(Vote vote)
     {
+        bool result = false;
+
         try
         {
             // clean the ids, let the EF Core generate them
@@ -29,30 +32,31 @@ public class DbVoteService : IVoteService
             }
 
             dbContext.Add(vote);
-
             await dbContext.SaveChangesAsync();
-            return true;
+
+            result = true;
+
+            LogInformation(logger, $"Successfully added vote {vote.Title} ({vote.Id})");
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            LogWarning(logger, $"DB concurrency error happened while trying to add vote {vote.Id}: {ex.Message}");
+        }
+        catch (DbUpdateException ex)
+        {
+            LogWarning(logger, $"DB error happened while trying to add vote {vote.Id}: {ex.Message}");
+        }
+        catch (OperationCanceledException ex)
+        {
+            LogWarning(logger, $"Task cancelled while trying to add vote {vote.Id}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            switch (ex)
-            {
-                case DbUpdateException or DbUpdateConcurrencyException:
-                    logger.LogInformation("Db error happened while trying to add vote {id}: {msg}",
-                        vote.Id, ex.Message);
-                    break;
-                case OperationCanceledException:
-                    logger.LogInformation("Task cancelled while trying to add vote {id}: {msg}",
-                        vote.Id, ex.Message);
-                    break;
-                default:
-                    logger.LogError(ex, "Unexpected error happened while trying to add vote {id}: {msg}",
-                        vote.Id, ex.Message);
-                    break;
-            }
-
-            return false;
+            LogError(logger, $"Unexpected error happened while trying to add vote {vote.Id}",
+                ex);
         }
+
+        return result;
     }
 
     public async Task<Vote?> GetVoteByIdAsync(string id)
@@ -148,6 +152,8 @@ public class DbVoteService : IVoteService
 
     public async Task<bool> RemoveVoteAsync(string id)
     {
+        bool result = false;
+
         try
         {
             var vote = await GetVoteByIdAsync(id);
@@ -155,29 +161,38 @@ public class DbVoteService : IVoteService
             {
                 dbContext.Votes.Remove(vote);
                 await dbContext.SaveChangesAsync();
+
+                result = true;
+
+                LogInformation(logger, $"Successfully removed vote {vote.Title} ({vote.Id})");
             }
-            return true;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            LogWarning(logger, $"DB concurrency error happened while trying to remove vote {id}: {ex.Message}");
+        }
+        catch (DbUpdateException ex)
+        {
+            LogWarning(logger, $"DB error happened while trying to remove vote {id}: {ex.Message}");
+        }
+        catch (OperationCanceledException ex)
+        {
+            LogWarning(logger, $"Task cancelled while trying to remove vote {id}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            switch (ex)
-            {
-                case DbUpdateException or DbUpdateConcurrencyException:
-                    logger.LogInformation("Db error happened while trying to remove vote {id}: {msg}",
-                        id, ex.Message);
-                    break;
-                case OperationCanceledException:
-                    logger.LogInformation("Task cancelled while trying to remove vote {id}: {msg}",
-                        id, ex.Message);
-                    break;
-            }
-
-            return false;
+            LogError(logger, $"Unexpected error happened while trying to remove vote {id}",
+                ex);
         }
+
+        return result;
     }
 
     public async Task<bool> UpdateVoteAsync(string voteId, Vote vote)
     {
+        bool result = false;
+        string id = vote.Id;
+
         try
         {
             var existing = await dbContext.Votes.FindAsync(voteId);
@@ -186,50 +201,55 @@ public class DbVoteService : IVoteService
                 existing.Subjects = vote.Subjects;
                 existing.Title = vote.Title;
                 await dbContext.SaveChangesAsync();
+
+                result = true;
+
+                LogInformation(logger, $"Successfully updated vote {vote.Title} ({id})");
             }
-            return true;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            LogWarning(logger, $"DB concurrency error happened while trying to " +
+                $"update vote {id}: {ex.Message}. Reverting changes to DB values");
+            foreach (var entry in ex.Entries)
+            {
+                if (entry.Entity is Vote)
+                {
+                    var proposedValues = entry.CurrentValues;
+                    var databaseValues = await entry.GetDatabaseValuesAsync();
+                    foreach (var property in proposedValues.Properties)
+                    {
+                        var databaseValue = databaseValues![property];
+                        // revert value to database value
+                        proposedValues[property] = databaseValue;
+                    }
+
+                    entry.OriginalValues.SetValues(databaseValues!);
+                }
+            }
+            throw;
+        }
+        catch (DbUpdateException ex)
+        {
+            LogWarning(logger, $"DB error happened while trying to update vote {id}: {ex.Message}");
+        }
+        catch (OperationCanceledException ex)
+        {
+            LogWarning(logger, $"Task cancelled while trying to update vote {id}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            switch (ex)
-            {
-                case DbUpdateConcurrencyException:
-                    logger.LogInformation("Db concurrency error happened while trying to update vote {id}: {msg}",
-                        voteId, ex.Message);
-                    var conEx = ex as DbUpdateConcurrencyException;
-                    foreach (var entry in conEx!.Entries)
-                    {
-                        if (entry.Entity is Vote)
-                        {
-                            var proposedValues = entry.CurrentValues;
-                            var databaseValues = await entry.GetDatabaseValuesAsync();
-                            foreach (var property in proposedValues.Properties)
-                            {
-                                var databaseValue = databaseValues![property];
-                                // revert value to database value
-                                proposedValues[property] = databaseValue;
-                            }
-
-                            entry.OriginalValues.SetValues(databaseValues!);
-                        }
-                    }
-                    throw;
-                case DbUpdateException:
-                    logger.LogInformation("Db error happened while trying to update vote {id}: {msg}",
-                        voteId, ex.Message);
-                    break;
-                case OperationCanceledException:
-                    logger.LogInformation("Task cancelled while trying to add remove {id}: {msg}",
-                        voteId, ex.Message);
-                    break;
-            }
-
-            return false;
+            LogError(logger, $"Unexpected error happened while trying to update vote {id}",
+                ex);
         }
+
+        return result;
     }
 
     public async Task<bool> GiveVoteAsync(string subjectId, string? userId)
     {
+        bool result = false;
+
         try
         {
             var subject = await dbContext.VoteSubjects
@@ -245,65 +265,89 @@ public class DbVoteService : IVoteService
                 });
                 subject.Version = Guid.CreateVersion7();
                 await dbContext.SaveChangesAsync();
-                return true;
-            }
 
-            return false;
+                result = true;
+
+                LogInformation(logger, $"Successfully gave vote to {subject.Name} ({subjectId})");
+            }
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            LogWarning(logger, $"DB concurrency error happened while " +
+                $"updating vote subject {subjectId}: {ex.Message}. Reverting changes to DB values");
+            foreach (var entry in ex.Entries)
+            {
+                if (entry.Entity is Vote)
+                {
+                    var proposedValues = entry.CurrentValues;
+                    var databaseValues = await entry.GetDatabaseValuesAsync();
+                    foreach (var property in proposedValues.Properties)
+                    {
+                        var databaseValue = databaseValues![property];
+                        // revert value to database value
+                        proposedValues[property] = databaseValue;
+                    }
+
+                    entry.OriginalValues.SetValues(databaseValues!);
+                }
+            }
+            throw;
+        }
+        catch (DbUpdateException ex)
+        {
+            LogWarning(logger, $"DB error happened while updating vote subject {subjectId}: {ex.Message}");
+        }
+        catch (OperationCanceledException ex)
+        {
+            LogWarning(logger, $"Task cancelled while updating vote subject {subjectId}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            switch (ex)
-            {
-                case DbUpdateConcurrencyException:
-                    logger.LogWarning("Db concurrency error happened while updating vote subject {id}: {msg}",
-                        subjectId, ex.Message);
-                    var conEx = ex as DbUpdateConcurrencyException;
-                    foreach (var entry in conEx!.Entries)
-                    {
-                        if (entry.Entity is Vote)
-                        {
-                            var proposedValues = entry.CurrentValues;
-                            var databaseValues = await entry.GetDatabaseValuesAsync();
-                            foreach (var property in proposedValues.Properties)
-                            {
-                                var databaseValue = databaseValues![property];
-                                // revert value to database value
-                                proposedValues[property] = databaseValue;
-                            }
-
-                            entry.OriginalValues.SetValues(databaseValues!);
-                        }
-                    }
-                    throw;
-                case DbUpdateException:
-                    logger.LogWarning("Db error happened while updating vote subject {id}: {msg}",
-                        subjectId, ex.Message);
-                    break;
-                case OperationCanceledException:
-                    logger.LogWarning("Task cancelled while updating vote subject {id}: {msg}",
-                        subjectId, ex.Message);
-                    break;
-            }
-
-            return false;
+            LogError(logger, $"Unexpected error happened while updating vote subject {subjectId}: {ex.Message}",
+                ex);
         }
+
+        return result;
     }
 
     public async Task<bool> DeleteVoteAsync(Vote vote)
     {
-        ArgumentNullException.ThrowIfNull(vote);
+        bool result = false;
+        if (vote == null)
+        {
+            return result;
+        }
 
+        string id = vote.Id;
         try
         {
             dbContext.Remove(vote);
-            var result = await dbContext.SaveChangesAsync();
-            return result > 0;
+            var saveResult = await dbContext.SaveChangesAsync();
+            result = saveResult > 0;
+
+            if (result)
+            {
+                LogInformation(logger, $"Successfully deleted vote {vote.Title} ({id})");
+            }
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            LogWarning(logger, $"DB concurrency error happened while trying to delete vote {id}: {ex.Message}");
         }
         catch (DbUpdateException ex)
         {
-            logger.LogInformation(ex, "DB update error while deleting vote {title} ({id})",
-                vote.Title, vote.Id);
-            return false;
+            LogWarning(logger, $"DB error happened while trying to delete vote {id}: {ex.Message}");
         }
+        catch (OperationCanceledException ex)
+        {
+            LogWarning(logger, $"Task cancelled while trying to delete vote {id}: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected error happened while trying to delete vote {id}",
+                ex);
+        }
+
+        return result;
     }
 }

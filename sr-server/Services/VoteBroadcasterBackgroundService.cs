@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.SignalRHubs;
-using SignalRDemo.Server.Models;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
 
@@ -108,7 +108,12 @@ public class VoteBroadcasterBackgroundService : BackgroundService
                 }
                 catch (InvalidOperationException ex)
                 {
-                    logger.LogInformation("Error while hubbing: {msg}", ex.Message);
+                    LogWarning(logger, $"Operation error happened while notifying vote created: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    LogError(logger, $"Unexpected error happened while notifying vote created",
+                        ex);
                 }
             }
         }, CancellationToken.None);
@@ -141,9 +146,21 @@ public class VoteBroadcasterBackgroundService : BackgroundService
 
                 if (v == null) continue;
 
-                var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
-                await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
-                    .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
+                try
+                {
+                    var voteHubContext = serviceProvider.GetRequiredService<IHubContext<VoteHub, IVoteHubClient>>();
+                    await voteHubContext.Clients.Group(VoteHub.GetVoteGroupName(voteId))
+                        .NotifyVoteUpdated(v.ToVoteUpdatedProperties());
+                }
+                catch (InvalidOperationException ex)
+                {
+                    LogWarning(logger, $"Operation error happened while notifying vote updated: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    LogError(logger, $"Unexpected error happened while notifying vote updated",
+                        ex);
+                }
 
                 if (!vote.CanVote())
                 {

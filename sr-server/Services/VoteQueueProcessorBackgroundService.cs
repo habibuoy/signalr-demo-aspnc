@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
 
@@ -35,13 +36,13 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
 
             if (vote == null)
             {
-                logger.LogWarning("Vote id {id} not found while trying to process vote queue.", item.VoteId);
+                LogWarning(logger, $"Vote id {item.VoteId} not found while trying to process vote queue.");
                 continue;
             }
 
             if (user == null)
             {
-                logger.LogWarning("User id {id} not found while trying to process vote queue.", item.UserId);
+                LogWarning(logger, $"User id {item.UserId} not found while trying to process vote queue.");
                 continue;
             }
 
@@ -54,43 +55,42 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
 
                 if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
                 {
-                    logger.LogWarning("User {email} already have given vote on vote id {vote.Id}.", email, vote.Id);
+                    LogWarning(logger, $"User {email} have already given vote on vote id {vote.Id}.");
                     continue;
                 }
 
                 if (vote.IsClosed()
                     || !vote.CanVote())
                 {
-                    logger.LogWarning("User {email} failed while giving vote on vote id {vote.Id}. Vote has been closed or exceeded maximum count",
-                        email, vote.Id);
+                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}. "+
+                        "Vote has been closed or exceeded maximum count.");
                     continue;
                 }
 
                 if (vote.Subjects.FirstOrDefault(s => s.Id.ToString() == item.SubjectId) is not VoteSubject subject)
                 {
-                    logger.LogWarning("User {email} failed while giving vote on vote id {vote.Id}. Subject not found",
-                        email, vote.Id);
+                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}. Subject not found.");
                     continue;
                 }
 
                 var result = await voteService.GiveVoteAsync(subject.Id.ToString(), userId);
                 if (!result)
                 {
-                    logger.LogWarning("User {email} failed while giving vote on vote id {vote.Id}",
-                        email, vote.Id);
+                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}.");
+                    continue;
                 }
 
-                logger.LogInformation("User {email} succeeded giving vote on vote id {vote.Id}",
-                    email, vote.Id);
+                LogInformation(logger, $"User {email} succeeded giving vote on vote id {vote.Id}.");
             }
             catch (DbUpdateConcurrencyException)
             {
-                logger.LogWarning("DB Concurrency happened while {user} giving vote for {vote.Id}", email, vote!.Id);
+                LogWarning(logger, $"DB Concurrency happened while {user} giving vote for {vote.Id}");
                 continue;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unknown error happened while {user} giving vote for {vote.Id}", email, vote!.Id);
+                LogError(logger, $"Unexpected error happened while {user} giving vote for {vote.Id}",
+                    ex);
                 continue;
             }
 
@@ -101,7 +101,8 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unknown error happened while notifying updated vote");
+                LogError(logger, "Unknown error happened while notifying updated vote",
+                    ex);
             }
         }
     }

@@ -263,7 +263,7 @@ public static class VoteHandlers
         if (!success)
         {
             LogWarning(logger, $"User {email} failed giving vote on vote {vote.Title} ({vote.Id}) " +
-                $"after retrying for {maxRetry}");
+                $"after retrying for {maxRetry} times");
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 

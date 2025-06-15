@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using SignalRDemo.Server.Utils;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
 
@@ -19,8 +20,7 @@ public class HubConnectionManager : IHubConnectionManager
         var success = hashSet.TryAdd(connectionId, out var count);
         if (success)
         {
-            logger.LogInformation("Added conn id {connectionId} to {userId}, count: {c}",
-                connectionId, userId, count);
+            LogInformation(logger, $"Added conn id {connectionId} to {userId}, count: {count}");
         }
 
         return Task.FromResult(success);
@@ -33,8 +33,7 @@ public class HubConnectionManager : IHubConnectionManager
         var success = hashSet.TryRemove(connectionId, out var count);
         if (success)
         {
-            logger.LogInformation("Removed conn id {connectionId} from {userId}, count: {c}",
-                connectionId, userId, count);
+            LogInformation(logger, $"Removed conn id {connectionId} to {userId}, count: {count}");
         }
 
         return Task.FromResult(success);
