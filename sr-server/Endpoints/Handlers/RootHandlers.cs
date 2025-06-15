@@ -6,7 +6,7 @@ using SignalRDemo.Server.Endpoints.Requests;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Utils.Extensions;
-using SignalRDemo.Server.Utils.Validators;
+using SignalRDemo.Server.Validations;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 

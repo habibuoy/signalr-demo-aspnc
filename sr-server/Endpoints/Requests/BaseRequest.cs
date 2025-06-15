@@ -1,4 +1,4 @@
-using SignalRDemo.Server.Utils.Validators;
+using SignalRDemo.Server.Validations;
 
 namespace SignalRDemo.Server.Endpoints.Requests;
 

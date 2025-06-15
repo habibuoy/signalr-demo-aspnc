@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using SignalRDemo.Server.Utils.Validators;
-using static SignalRDemo.Server.Utils.Validators.VoteValidators;
+using SignalRDemo.Server.Validations;
+using static SignalRDemo.Server.Validations.VoteValidators;
 
 namespace SignalRDemo.Server.Models;
 

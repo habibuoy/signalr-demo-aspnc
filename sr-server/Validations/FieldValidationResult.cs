@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Utils.Validators;
+namespace SignalRDemo.Server.Validations;
 
 public class FieldValidationResult : Result<string, Dictionary<string, List<string>>>
 {

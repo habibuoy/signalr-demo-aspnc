@@ -1,5 +1,5 @@
-using SignalRDemo.Server.Utils.Validators;
-using static SignalRDemo.Server.Utils.Validators.RoleValidators;
+using SignalRDemo.Server.Validations;
+using static SignalRDemo.Server.Validations.RoleValidators;
 
 namespace SignalRDemo.Server.Models;
 

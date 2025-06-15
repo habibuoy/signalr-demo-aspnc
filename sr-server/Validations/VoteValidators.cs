@@ -1,7 +1,7 @@
 using SignalRDemo.Server.Models;
-using static SignalRDemo.Server.Utils.Validators.Validators;
+using static SignalRDemo.Server.Validations.Validators;
 
-namespace SignalRDemo.Server.Utils.Validators;
+namespace SignalRDemo.Server.Validations;
 
 public static class VoteValidators
 {

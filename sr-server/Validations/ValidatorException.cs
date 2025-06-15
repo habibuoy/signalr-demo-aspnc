@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Utils.Validators;
+namespace SignalRDemo.Server.Validations;
 
 public class ValidatorException : Exception
 {

@@ -1,7 +1,7 @@
-using static SignalRDemo.Server.Utils.Validators.Validators;
+using static SignalRDemo.Server.Validations.Validators;
 using static SignalRDemo.Server.Configurations.AppConstants;
 
-namespace SignalRDemo.Server.Utils.Validators;
+namespace SignalRDemo.Server.Validations;
 
 public static class RoleValidators
 {

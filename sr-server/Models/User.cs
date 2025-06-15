@@ -1,7 +1,7 @@
-using static SignalRDemo.Server.Utils.Validators.UserValidator;
 using SignalRDemo.Server.Utils;
 using System.Diagnostics.CodeAnalysis;
-using SignalRDemo.Server.Utils.Validators;
+using SignalRDemo.Server.Validations;
+using static SignalRDemo.Server.Validations.UserValidator;
 
 namespace SignalRDemo.Server.Models;
 
