@@ -20,7 +20,7 @@ var serviceProvider = services.BuildServiceProvider();
 const float DelayBeforePostingVote = 1f; // in s
 const float DelayBeforeFlood = 3f; // in s
 
-const string CreateVoteUrl = $"{BaseVoteUrl}/create";
+const string CreateVoteUrl = $"{BaseVoteUrl}/";
 const string Email = "creator@gmail.com";
 const string Password = "Password123@";
 const string VoteRecordsFilePath = "./vote-records.json";
@@ -234,8 +234,8 @@ static async Task FloodTaskAsync(int index, string voteId, int endpointType,
         while (!isSuccessVote && retryRemaining > 0)
         {
             string endpoint = endpointType == 1
-                ? $"{BaseVoteUrl}?voteId={voteId}&subjectId={subjectId}"
-                : $"{BaseVoteUrl}/queue?voteId={voteId}&subjectId={subjectId}";
+                ? $"{BaseVoteUrl}/inputs?voteId={voteId}&subjectId={subjectId}"
+                : $"{BaseVoteUrl}/inputs/queue?voteId={voteId}&subjectId={subjectId}";
             var voteSubjectResponse = await SendHttpRequestAsync(httpClient,
                 endpoint,
                 HttpMethod.Post,
@@ -260,7 +260,15 @@ static async Task FloodTaskAsync(int index, string voteId, int endpointType,
             return;
         }
 
-        Console.WriteLine($"Flood task {index} successfully voted subject {subjectId} on vote {voteId}");
+        switch (endpointType)
+        {
+            default:
+                Console.WriteLine($"Flood task {index} successfully voted subject {subjectId} on vote {voteId}");
+                break;
+            case 2:
+                Console.WriteLine($"Flood task {index} successfully queued vote subject {subjectId} on vote {voteId}");
+                break;
+        }
     }
     catch (Exception ex)
     {

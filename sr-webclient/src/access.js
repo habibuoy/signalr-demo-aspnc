@@ -1,7 +1,7 @@
 export { login, isAuthenticated, canManageVote }
 
 async function canManageVote() {
-    const response = await fetch(`https://localhost:7000/vote/can-manage`, {
+    const response = await fetch(`https://localhost:7000/votes/can-manage`, {
         credentials: "include",
     })
 

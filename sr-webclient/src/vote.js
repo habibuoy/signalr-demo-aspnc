@@ -2,7 +2,7 @@ export { Vote, VoteSubject, VoteInput, getVoteInputs, inputVote as tryInputVote,
         getVotes, createNewVote }
 
 async function getVotes(count = 10, sortOrder = "desc") {
-    const response = await fetch(`https://localhost:7000/vote?${count}=10&sortBy=cdt&sortOrder=${sortOrder}`, {
+    const response = await fetch(`https://localhost:7000/votes?${count}=10&sortBy=cdt&sortOrder=${sortOrder}`, {
         credentials: "include",
     })
 
@@ -34,7 +34,7 @@ async function getVotes(count = 10, sortOrder = "desc") {
 }
 
 async function inputVote(voteId, subjectId) {
-    return fetch(`https://localhost:7000/vote?voteId=${voteId}&subjectId=${subjectId}`, {
+    return fetch(`https://localhost:7000/votes/inputs?voteId=${voteId}&subjectId=${subjectId}`, {
         method: "POST",
         credentials: "include"
     })
@@ -53,7 +53,7 @@ async function inputVote(voteId, subjectId) {
 }
 
 async function getVoteInputs() {
-    return fetch("https://localhost:7000/user/vote-inputs", {
+    return fetch("https://localhost:7000/users/vote-inputs", {
         credentials: 'include'
     })
         .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
@@ -83,7 +83,7 @@ async function createNewVote(title, subjects, duration = 0, maxCount = 0) {
     const reqHeader = new Headers()
     reqHeader.append("Content-Type", "application/json")
     console.log(jsonBody)
-    return fetch("https://localhost:7000/vote/create", {
+    return fetch("https://localhost:7000/votes/", {
         method: "POST",
         credentials: "include",
         headers: reqHeader,
