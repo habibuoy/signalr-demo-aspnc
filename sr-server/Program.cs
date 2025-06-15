@@ -15,8 +15,8 @@ app.UseMiddlewares();
 
 app.MapSignalRs();
 app.MapGroup("/").MapRoots();
-app.MapGroup("/user").MapUsers();
-app.MapGroup("/role").MapRoles();
-app.MapGroup("/vote").MapVotes();
+app.MapGroup("/users").MapUsers();
+app.MapGroup("/roles").MapRoles();
+app.MapGroup("/votes").MapVotes();
 
 app.Run();
