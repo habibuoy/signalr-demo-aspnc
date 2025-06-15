@@ -7,6 +7,7 @@ using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Validations;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -34,9 +35,9 @@ public static class RootHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating register request. " +
-                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
-                ex.FieldName, ex.FieldValue, ex.ReferenceValue);
+            LogError(logger, "Error happened while validating register request. " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -59,8 +60,8 @@ public static class RootHandlers
             }
             else
             {
-                logger.LogError(ex, "Domain error happened while creating User entity of {email}",
-                    request.Email);
+                LogError(logger, $"Domain error happened while creating User entity of {email}",
+                    ex);
                 return Results.InternalServerError(ResponseObject.ServerError());
             }
         }

@@ -6,6 +6,7 @@ using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Validations;
 using static SignalRDemo.Server.Configurations.AppConstants;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -112,9 +113,9 @@ public static class RoleHandlers
         catch (ModelFieldValidatorException ex)
         {
             var email = httpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
-            logger.LogError(ex, "Error happened while validating create role request by {email}. " +
-                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
-                email, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
+            LogError(logger, $"Error happened while validating create role request by {email}. " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -137,8 +138,8 @@ public static class RoleHandlers
             else
             {
                 var email = httpContext.User?.FindFirstValue(ClaimTypes.Email);
-                logger.LogError(ex, "Domain error happened while creating Role entity by request of user {email}",
-                    email);
+                LogError(logger, "Domain error happened while creating Role entity by request of user {email}",
+                    ex);
                 return Results.InternalServerError(ResponseObject.ServerError());
             }
         }
@@ -183,9 +184,9 @@ public static class RoleHandlers
         catch (ModelFieldValidatorException ex)
         {
             var email = httpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
-            logger.LogError(ex, "Error happened while validating update role request by {email}. " +
-                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
-                email, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
+            LogError(logger, $"Error happened while validating update role request by {email}. " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 

@@ -7,6 +7,7 @@ using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Validations;
 using static SignalRDemo.Server.Configurations.AppConstants;
+using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -116,9 +117,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating create vote request from user {email} ({id}). " +
-                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
-                userEmail, userId, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
+            LogError(logger, $"Error happened while validating create vote request from user {userEmail} ({userId}). " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -135,8 +136,8 @@ public static class VoteHandlers
             }
             else
             {
-                logger.LogError(ex, "Domain error happened while creating vote entity from user {email} ({id})",
-                    userEmail, userId);
+                LogError(logger, $"Domain error happened while creating vote entity from user {userEmail} ({userId})",
+                    ex);
                 return Results.InternalServerError(ResponseObject.ServerError());
             }
         }
@@ -154,7 +155,7 @@ public static class VoteHandlers
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error happened while writing created vote notification");
+            LogError(logger, $"Unexpected error happened while writing created vote notification", ex);
         }
 
         return Results.Created($"https://{httpContext.Request.Host}/vote/{vote.Id}", ResponseObject.Success(vote.ToResponse()));
@@ -183,9 +184,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating input vote request from user {email} ({id}). " +
-                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
-                email, userId, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
+            LogError(logger, $"Error happened while validating input vote request from user {email} ({userId}). " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -239,21 +240,20 @@ public static class VoteHandlers
                 {
                     if (remainingRetry < maxRetry)
                     {
-                        logger.LogInformation("User {email} succeeded giving vote after retrying for {retryCount} time(s)",
-                            email, maxRetry - remainingRetry);
+                        LogInformation(logger, $"User {email} succeeded giving vote after " +
+                            $"retrying for {maxRetry - remainingRetry} time(s)");
                     }
                     success = true;
                 }
             }
             catch (DbUpdateConcurrencyException)
             {
-                // logger.LogWarning("DB Concurrency happened while {user} giving vote for {vote.Id}", email, vote!.Id);
                 remainingRetry--;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error happened while User {email} giving vote on vote {v.title} ({v.id})",
-                    email, vote.Title, vote.Id);
+                LogError(logger, $"Unexpected error happened while User {email} " +
+                    $"giving vote on vote {vote.Title} ({vote.Id})", ex);
                 return Results.InternalServerError(ResponseObject.ServerError());
             }
 
@@ -262,8 +262,8 @@ public static class VoteHandlers
 
         if (!success)
         {
-            logger.LogWarning("User {email} failed giving vote on vote {v.title} ({v.id}) after retrying for {maxRetry}",
-                email, vote.Title, vote.Id, maxRetry);
+            LogWarning(logger, $"User {email} failed giving vote on vote {vote.Title} ({vote.Id}) " +
+                $"after retrying for {maxRetry}");
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -274,7 +274,7 @@ public static class VoteHandlers
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error happened while writing updated vote notification");
+            LogError(logger, "Unexpected error happened while writing updated vote notification", ex);
         }
 
         return Results.Ok(ResponseObject.Success(vote.ToResponse()));
@@ -304,9 +304,9 @@ public static class VoteHandlers
         }
         catch (ModelFieldValidatorException ex)
         {
-            logger.LogError(ex, "Error happened while validating input vote queue request from user {email} ({id}). " +
-                "Field (name: {fieldName}, value: {fieldValue}), reference value: {refValue}.",
-                email, userId, ex.FieldName, ex.FieldValue, ex.ReferenceValue);
+            LogError(logger, $"Error happened while validating input vote queue request from user {email} ({userId}). " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
@@ -321,8 +321,7 @@ public static class VoteHandlers
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unknown error happened while user {email} queuing vote {voteId}",
-                email, request.VoteId);
+            LogError(logger, $"Unknown error happened while user {email} queuing vote {request.VoteId}", ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
