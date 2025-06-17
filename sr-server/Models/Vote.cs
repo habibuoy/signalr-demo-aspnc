@@ -37,18 +37,18 @@ public class Vote
 
         try
         {
-            List<string> validationErrors = new();
+            Dictionary<string, IReadOnlyList<string>> validationErrors = new();
             if (ValidateTitle(title) is { Succeeded: false } titleValidation)
-                validationErrors.AddRange(titleValidation.Error);
+                validationErrors.Add(nameof(title), titleValidation.Error);
 
             if (ValidateSubjects(subjects) is { Succeeded: false } subjectsValidation)
-                validationErrors.AddRange(subjectsValidation.Error);
+                validationErrors.Add(nameof(subjects), subjectsValidation.Error);
 
             if (ValidateMaximumCount(maximumCount, subjects) is { Succeeded: false } maxCountValidation)
-                validationErrors.AddRange(maxCountValidation.Error);
+                validationErrors.Add(nameof(maximumCount), maxCountValidation.Error);
 
             if (ValidateDuration(duration) is { Succeeded: false } durationValidation)
-                validationErrors.AddRange(durationValidation.Error);
+                validationErrors.Add(nameof(duration), durationValidation.Error);
 
             if (validationErrors.Count > 0)
             {
@@ -92,14 +92,14 @@ public class Vote
         DateTime? updateExpiredDt = null;
         try
         {
-            var validationErrors = new List<string>();
+            var validationErrors = new Dictionary<string, List<string>>();
 
             if (ValidateTitle(vote.Title) is { Succeeded: false } titleValidation)
-                validationErrors.AddRange(titleValidation.Error);
+                validationErrors.Add(nameof(vote.Title), titleValidation.Error);
 
             string[] subjects = vote.Subjects == null ? null! : [.. vote.Subjects.Select(s => s.Name)];
             if (ValidateSubjects(subjects) is { Succeeded: false } subjectsValidation)
-                validationErrors.AddRange(subjectsValidation.Error);
+                validationErrors.Add(nameof(vote.Subjects), subjectsValidation.Error);
 
             var maxCount = vote.MaximumCount;
             if (maxCount != null)
@@ -107,23 +107,43 @@ public class Vote
                 var cCount = CurrentCount;
                 if (maxCount.Value < cCount)
                 {
-                    validationErrors.Add($"Maximum count ({maxCount}) cannot be less than current count ({cCount})");
+                    if (!validationErrors.TryGetValue(nameof(vote.MaximumCount), out var maxCountError))
+                    {
+                        maxCountError = new();
+                        validationErrors.Add(nameof(vote.MaximumCount), maxCountError);
+                    }
+                    maxCountError.Add($"Maximum count ({maxCount}) cannot be less than current count ({cCount})");
                 }
 
                 if (ValidateMaximumCount(maxCount, subjects) is { Succeeded: false } maxCountValidation)
-                    validationErrors.AddRange(maxCountValidation.Error);
+                {
+                    if (validationErrors.TryGetValue(nameof(vote.MaximumCount), out var maxCountError))
+                    {
+                        maxCountError.AddRange(maxCountValidation.Error);
+                    }
+                    else
+                    {
+                        validationErrors.Add(nameof(vote.MaximumCount), maxCountValidation.Error);
+                    }
+                }
             }
 
             if (vote.ExpiredTime != null)
             {
                 var duration = vote.ExpiredTime.Value - vote.CreatedTime;
                 if (ValidateDuration(duration.Seconds) is { Succeeded: false } durationValidation)
-                    validationErrors.AddRange(durationValidation.Error);
+                    validationErrors.Add(nameof(duration), durationValidation.Error);
                 var dtNow = DateTime.UtcNow;
                 updateExpiredDt = CreatedTime.Add(duration);
                 if (updateExpiredDt < dtNow)
                 {
-                    validationErrors.Add($"Duration should not make " +
+                    if (!validationErrors.TryGetValue(nameof(duration), out var durationError))
+                    {
+                        durationError = new();
+                        validationErrors.Add(nameof(vote.MaximumCount), durationError);
+                    }
+
+                    durationError.Add($"Duration should not make " +
                         $"the expired time earlier than now {dtNow}. With current duration ({duration} seconds), " +
                         $"expired time would be on {updateExpiredDt}");
                 }
@@ -132,7 +152,7 @@ public class Vote
             if (validationErrors.Count > 0)
             {
                 throw new DomainValidationException($"Validation error while updating {nameof(Vote)} entity. " +
-                    "Check out the errors property.", validationErrors);
+                    "Check out the errors property.", (IReadOnlyDictionary<string, IReadOnlyList<string>>) validationErrors);
             }
         }
         catch (ModelFieldValidatorException ex)

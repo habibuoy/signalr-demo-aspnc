@@ -37,7 +37,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
             if (!success)
             {
                 LogWarning(logger, $"Failed to create vote {vote.Title}");
-                return ServiceResult<Vote>.SystemError([$"Failed to create vote {vote.Title}"]);
+                return ServiceResult<Vote>.SimpleSystemError($"Failed to create vote {vote.Title}");
             }
 
             LogInformation(logger, $"Successfully created vote {vote.Title} ({vote.Id})");
@@ -61,7 +61,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
                 ex);
         }
 
-        return ServiceResult<Vote>.SystemError([$"Failed to create vote {vote.Title}"]);
+        return ServiceResult<Vote>.SimpleSystemError($"Failed to create vote {vote.Title}");
     }
 
     public async Task<Vote?> GetVoteByIdAsync(string id)
@@ -171,14 +171,14 @@ public class DbVoteService : IVoteService, IVoteQueueService
                 catch (DomainValidationException ex)
                 {
                     LogWarning(logger, $"Trying to update vote {id} with invalid fields");
-                    return ServiceResult<Vote>.Fail(GenericServiceErrorCode.InvalidObject, ex.ValidationErrors);
+                    return ServiceResult<Vote>.ValidationError(ex.ValidationErrors);
                 }
                 catch (DomainException ex)
                 {
                     LogError(logger, $"Domain error happened while updating vote {existing.Title} ({id})",
                         ex);
-                    return ServiceResult<Vote>.Fail(GenericServiceErrorCode.SystemError,
-                        [$"Domain error happened while updating vote {existing.Title} ({id}): {ex.Message}"]);
+                    return ServiceResult<Vote>.SimpleSystemError(
+                        $"Domain error happened while updating vote {existing.Title} ({id}): {ex.Message}");
                 }
 
                 await dbContext.SaveChangesAsync();
@@ -224,7 +224,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
                 ex);
         }
 
-        return ServiceResult<Vote>.SystemError([$"Failed to update vote {id}"]);
+        return ServiceResult<Vote>.SimpleSystemError($"Failed to update vote {id}");
     }
 
     public async Task<ServiceResult<VoteSubjectInput>> GiveVoteAsync(string subjectId, string? userId)
@@ -285,7 +285,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
                 ex);
         }
 
-        return ServiceResult<VoteSubjectInput>.SystemError([$"Failed to give vote to subject {subjectId}"]);
+        return ServiceResult<VoteSubjectInput>.SimpleSystemError($"Failed to give vote to subject {subjectId}");
     }
 
     public async Task<ServiceResult<Vote>> DeleteVoteAsync(Vote vote)
@@ -293,8 +293,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
         if (vote == null)
         {
             LogWarning(logger, $"Trying to delete a null vote");
-            return ServiceResult<Vote>.Fail(GenericServiceErrorCode.SystemError,
-                ["Cannot delete a null vote"]);
+            return ServiceResult<Vote>.SimpleSystemError("Cannot delete a null vote");
         }
 
         string id = vote.Id;
@@ -306,7 +305,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
             if (!success)
             {
                 LogWarning(logger, $"Failed to delete vote {vote.Title}");
-                return ServiceResult<Vote>.SystemError([$"Failed to delete vote {vote.Title} ({id})"]);
+                return ServiceResult<Vote>.SimpleSystemError($"Failed to delete vote {vote.Title} ({id})");
             }
 
             LogInformation(logger, $"Successfully deleted vote {vote.Title} ({id})");
@@ -330,8 +329,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
                 ex);
         }
 
-        return ServiceResult<Vote>.Fail(GenericServiceErrorCode.SystemError,
-            [$"Failed to delete vote {vote.Title} ({vote.Id})"]);
+        return ServiceResult<Vote>.SimpleSystemError($"Failed to delete vote {vote.Title} ({vote.Id})");
     }
 
     public async Task<ServiceResult<VoteQueueInput>> QueueVoteAsync(string subjectId, string? userId)
@@ -359,7 +357,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
         {
             LogError(logger, $"Unexpected error happened while writing vote queue on subject id {subjectId} " +
                 $"from userId {voteInput.VoterId}", ex);
-            return ServiceResult<VoteQueueInput>.SystemError([$"Failed to queue vote input on {subjectId}"]);
+            return ServiceResult<VoteQueueInput>.SimpleSystemError($"Failed to queue vote input on {subjectId}");
         }
 
         var queueInput = VoteQueueInput.Create(subject.Vote!.Id, subjectId, voteInput.VoterId);
@@ -372,8 +370,8 @@ public class DbVoteService : IVoteService, IVoteQueueService
         if (!int.TryParse(subjectId, out var subjId))
         {
             LogWarning(logger, $"Failed to give vote to a subject with invalid id {subjectId}");
-            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.InvalidObject,
-                [$"Subject id {subjectId} is invalid"]);
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.SimpleFail(GenericServiceErrorCode.InvalidObject,
+                $"Subject id {subjectId} is invalid");
         }
 
         var vote = await dbContext.Votes
@@ -385,8 +383,8 @@ public class DbVoteService : IVoteService, IVoteQueueService
         if (vote == null)
         {
             LogWarning(logger, $"Vote related to subject with id {subjectId} not found while trying to give vote");
-            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.NotFound,
-                [$"Vote related with subject id {subjectId} not found"]);
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.SimpleFail(GenericServiceErrorCode.NotFound,
+                $"Vote related with subject id {subjectId} not found");
         }
 
         var subject = vote.Subjects.FirstOrDefault(s => s.Id == subjId);
@@ -394,8 +392,8 @@ public class DbVoteService : IVoteService, IVoteQueueService
         if (subject == null)
         {
             LogWarning(logger, $"Subject with id {subjectId} not found while trying to give vote");
-            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.NotFound,
-                [$"Subject id {subjectId} not found"]);
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.SimpleFail(GenericServiceErrorCode.NotFound,
+                $"Subject id {subjectId} not found");
         }
 
         if (vote.IsClosed()
@@ -403,8 +401,8 @@ public class DbVoteService : IVoteService, IVoteQueueService
         {
             LogWarning(logger, $"Failed to give vote to subject {subject.Name} ({subjectId}). " +
                 $"{vote.Title} ({vote.Id}) related to it is closed or has exceeded maximum count");
-            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.Conflicted,
-                [$"Vote is closed or has exceeded maximum count"]);
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.SimpleFail(GenericServiceErrorCode.Conflicted,
+                $"Vote is closed or has exceeded maximum count");
         }
 
         if (userId != null
@@ -413,8 +411,8 @@ public class DbVoteService : IVoteService, IVoteQueueService
         {
             LogWarning(logger, $"User {userId} trying to give vote on Vote {subject.VoteId} while it has given " +
                 $"its vote on Vote {subject.VoteId}");
-            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.Conflicted,
-                [$"User {userId} has already given vote on Vote {subject.VoteId}"]);
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.SimpleFail(GenericServiceErrorCode.Conflicted,
+                $"User {userId} has already given vote on Vote {subject.VoteId}");
         }
 
         var voteInput = VoteSubjectInput.Create(subject!.Id, userId);

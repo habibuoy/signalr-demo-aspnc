@@ -17,14 +17,14 @@ public class Role
     {
         try
         {
-            List<string> validationErrors = new();
+            var validationErrors = new Dictionary<string, List<string>>();
             if (ValidateName(name) is { Succeeded: false } nameValidation)
-                validationErrors.AddRange(nameValidation.Error);
+                validationErrors.Add(nameof(name), nameValidation.Error);
 
             if (validationErrors.Count > 0)
             {
                 throw new DomainValidationException($"Validation error while creating {nameof(Role)} entity. " +
-                    "Check out the errors property.", validationErrors);
+                    "Check out the errors property.", (IReadOnlyDictionary<string, IReadOnlyList<string>>) validationErrors);
             }
         }
         catch (ModelFieldValidatorException ex)

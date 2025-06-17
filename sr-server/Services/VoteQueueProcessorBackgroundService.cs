@@ -54,7 +54,7 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
                 if (!result.Succeeded)
                 {
                     LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}: " +
-                        $"{string.Join(", ", result.Error)}.");
+                        $"{string.Join(", ", result.Error.Message)}.");
                     continue;
                 }
 

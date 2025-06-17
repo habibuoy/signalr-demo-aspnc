@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using SignalRDemo.Server.Endpoints.Requests;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Services;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Validations;
 using static SignalRDemo.Server.Configurations.AppConstants;
 using static SignalRDemo.Server.Utils.LogHelper;
+using static SignalRDemo.Server.Utils.HttpHelper;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -146,17 +146,7 @@ public static class VoteHandlers
         var result = await voteService.CreateVoteAsync(vote);
         if (!result.Succeeded)
         {
-            return result.ErrorCode switch
-            {
-                GenericServiceErrorCode.InvalidObject => Results.BadRequest(
-                    ResponseObject.ValidationError(result.Error)),
-                GenericServiceErrorCode.NotFound => Results.NotFound(
-                    ResponseObject.Create(result.Error.Single())),
-                GenericServiceErrorCode.Conflicted => Results.Conflict(
-                    ResponseObject.Create(result.Error.Single())),
-                GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
-                    ResponseObject.ServerError()),
-            };
+            return GetHttpResultFromServiceResult(result);
         }
 
         vote = result.Value;
@@ -225,17 +215,7 @@ public static class VoteHandlers
                 var result = await voteService.GiveVoteAsync(request.SubjectId.ToString(), userId);
                 if (!result.Succeeded)
                 {
-                    return result.ErrorCode switch
-                    {
-                        GenericServiceErrorCode.InvalidObject => Results.BadRequest(
-                            ResponseObject.ValidationError(result.Error)),
-                        GenericServiceErrorCode.NotFound => Results.NotFound(
-                            ResponseObject.Create(result.Error.Single())),
-                        GenericServiceErrorCode.Conflicted => Results.Conflict(
-                            ResponseObject.Create(result.Error.Single())),
-                        GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
-                            ResponseObject.ServerError()),
-                    };
+                    return GetHttpResultFromServiceResult(result);
                 }
 
                 if (remainingRetry < maxRetry)
@@ -315,17 +295,7 @@ public static class VoteHandlers
         var result = await voteQueueService.QueueVoteAsync(request.SubjectId.ToString(), userId);
         if (!result.Succeeded)
         {
-            return result.ErrorCode switch
-            {
-                GenericServiceErrorCode.InvalidObject => Results.BadRequest(
-                    ResponseObject.ValidationError(result.Error)),
-                GenericServiceErrorCode.NotFound => Results.NotFound(
-                    ResponseObject.Create(result.Error.Single())),
-                GenericServiceErrorCode.Conflicted => Results.Conflict(
-                    ResponseObject.Create(result.Error.Single())),
-                GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
-                    ResponseObject.ServerError()),
-            };
+            return GetHttpResultFromServiceResult(result);
         }
 
         return Results.Ok(ResponseObject.Success(result.Value.ToResponse()));
@@ -395,17 +365,7 @@ public static class VoteHandlers
             var result = await voteService.UpdateVoteAsync(id, updatedVote);
             if (!result.Succeeded)
             {
-                return result.ErrorCode switch
-                {
-                    GenericServiceErrorCode.InvalidObject => Results.BadRequest(
-                        ResponseObject.ValidationError(result.Error)),
-                    GenericServiceErrorCode.NotFound => Results.NotFound(
-                        ResponseObject.Create(result.Error.Single())),
-                    GenericServiceErrorCode.Conflicted => Results.Conflict(
-                        ResponseObject.Create(result.Error.Single())),
-                    GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
-                        ResponseObject.ServerError()),
-                };
+                return GetHttpResultFromServiceResult(result);
             }
 
             updatedVote = result.Value;
@@ -438,17 +398,7 @@ public static class VoteHandlers
         var result = await voteService.DeleteVoteAsync(vote);
         if (!result.Succeeded)
         {
-            return result.ErrorCode switch
-            {
-                GenericServiceErrorCode.InvalidObject => Results.BadRequest(
-                    ResponseObject.ValidationError(result.Error)),
-                GenericServiceErrorCode.NotFound => Results.NotFound(
-                    ResponseObject.Create(result.Error.Single())),
-                GenericServiceErrorCode.Conflicted => Results.Conflict(
-                    ResponseObject.Create(result.Error.Single())),
-                GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
-                    ResponseObject.ServerError()),
-            };
+            return GetHttpResultFromServiceResult(result);
         }
 
         return Results.Ok(ResponseObject.Success(null!));
