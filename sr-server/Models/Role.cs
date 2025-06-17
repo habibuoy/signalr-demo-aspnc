@@ -23,7 +23,7 @@ public class Role
 
             if (validationErrors.Count > 0)
             {
-                throw new DomainException($"Validation error while creating {nameof(Role)} entity. " +
+                throw new DomainValidationException($"Validation error while creating {nameof(Role)} entity. " +
                     "Check out the errors property.", validationErrors);
             }
         }

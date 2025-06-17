@@ -52,18 +52,15 @@ public static class RootHandlers
         {
             user = request.ToUser();
         }
+        catch (DomainValidationException ex)
+        {
+            return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+        }
         catch (DomainException ex)
         {
-            if (ex.ValidationErrors.Any())
-            {
-                return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
-            }
-            else
-            {
-                LogError(logger, $"Domain error happened while creating User entity of {email}",
-                    ex);
-                return Results.InternalServerError(ResponseObject.ServerError());
-            }
+            LogError(logger, $"Domain error happened while creating {nameof(User)} entity of {email}",
+                ex);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         user = await userService.CreateUserAsync(user);

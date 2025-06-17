@@ -133,19 +133,16 @@ public static class RoleHandlers
         {
             role = request.ToRole();
         }
+        catch (DomainValidationException ex)
+        {
+            return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+        }
         catch (DomainException ex)
         {
-            if (ex.ValidationErrors.Any())
-            {
-                return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
-            }
-            else
-            {
-                var email = httpContext.User?.FindFirstValue(ClaimTypes.Email);
-                LogError(logger, "Domain error happened while creating Role entity by request of user {email}",
-                    ex);
-                return Results.InternalServerError(ResponseObject.ServerError());
-            }
+            var email = httpContext.User?.FindFirstValue(ClaimTypes.Email);
+            LogError(logger, $"Domain error happened while creating {nameof(Role)} entity by request of user {email}",
+                ex);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         role = await roleService.CreateRoleAsync(role);

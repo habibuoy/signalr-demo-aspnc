@@ -38,7 +38,7 @@ public static class UserHandlers
         return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleResponse())));
     }
 
-    public static async Task<IResult> GetVoteInputs( HttpContext httpContext,
+    public static async Task<IResult> GetVoteInputs(HttpContext httpContext,
         [FromServices] IVoteService voteService)
     {
         var existingUser = httpContext.User;

@@ -40,7 +40,7 @@ public class User
 
             if (validationErrors.Count > 0)
             {
-                throw new DomainException($"Validation error while creating {nameof(User)} entity. " +
+                throw new DomainValidationException($"Validation error while creating {nameof(User)} entity. " +
                     "Check out the errors property.", validationErrors);
             }
         }
