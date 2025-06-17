@@ -1,9 +1,11 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SignalRDemo.Server.Endpoints.Requests;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
+using SignalRDemo.Server.Services;
 using SignalRDemo.Server.Utils.Extensions;
 using SignalRDemo.Server.Validations;
 using static SignalRDemo.Server.Configurations.AppConstants;
@@ -29,6 +31,8 @@ public static class VoteHandlers
             .RequireAuthorization(VoteInspectorAuthorizationPolicyName);
 
         routes.MapPost("/", Create)
+            .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);
+        routes.MapPut("/{id}", Update)
             .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);
         routes.MapDelete("/{id}", Delete)
             .RequireAuthorization(VoteAdministratorAuthorizationPolicyName);
@@ -128,25 +132,34 @@ public static class VoteHandlers
         {
             vote = request.ToVote(await userService.GetUserByIdAsync(userId!));
         }
+        catch (DomainValidationException ex)
+        {
+            return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+        }
         catch (DomainException ex)
         {
-            if (ex.ValidationErrors.Any())
-            {
-                return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
-            }
-            else
-            {
-                LogError(logger, $"Domain error happened while creating vote entity from user {userEmail} ({userId})",
-                    ex);
-                return Results.InternalServerError(ResponseObject.ServerError());
-            }
-        }
-
-        var result = await voteService.AddVoteAsync(vote);
-        if (!result)
-        {
+            LogError(logger, $"Domain error happened while creating vote entity from user {userEmail} ({userId})",
+                ex);
             return Results.InternalServerError(ResponseObject.ServerError());
         }
+
+        var result = await voteService.CreateVoteAsync(vote);
+        if (!result.Succeeded)
+        {
+            return result.ErrorCode switch
+            {
+                GenericServiceErrorCode.InvalidObject => Results.BadRequest(
+                    ResponseObject.ValidationError(result.Error)),
+                GenericServiceErrorCode.NotFound => Results.NotFound(
+                    ResponseObject.Create(result.Error.Single())),
+                GenericServiceErrorCode.Conflicted => Results.Conflict(
+                    ResponseObject.Create(result.Error.Single())),
+                GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
+                    ResponseObject.ServerError()),
+            };
+        }
+
+        vote = result.Value;
 
         try
         {
@@ -158,10 +171,11 @@ public static class VoteHandlers
             LogError(logger, $"Unexpected error happened while writing created vote notification", ex);
         }
 
-        return Results.Created($"https://{httpContext.Request.Host}/vote/{vote.Id}", ResponseObject.Success(vote.ToResponse()));
+        return Results.Created($"https://{httpContext.Request.Host}/vote/{vote.Id}",
+            ResponseObject.Success(vote.ToResponse()));
     }
 
-    public static async Task<IResult> Input([AsParameters] GiveVoteRequest request,
+    public static async Task<IResult> Input([AsParameters] InputVoteRequest request,
         HttpContext httpContext,
         [FromServices] ILoggerFactory loggerFactory)
     {
@@ -196,6 +210,7 @@ public static class VoteHandlers
         int remainingRetry = maxRetry;
 
         Vote vote = null!;
+        VoteSubjectInput voteInput = null!;
 
         while (!success && remainingRetry >= 0)
         {
@@ -204,47 +219,34 @@ public static class VoteHandlers
                 using var scope = httpContext.RequestServices.CreateScope();
                 var voteService = scope.ServiceProvider.GetRequiredService<IVoteService>();
 
-                vote = (await voteService.GetVoteByIdAsync(request.VoteId))!;
-
-                if (vote == null)
-                {
-                    return Results.NotFound(ResponseObject.Create($"Vote with id {request.VoteId} not found"));
-                }
-
-                var inputs = vote.Subjects.SelectMany(s => s.Voters);
                 userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
                 email = httpContext.User.FindFirstValue(ClaimTypes.Email);
-                if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
-                {
-                    return Results.Conflict(ResponseObject.Create($"User {email} already have given vote on vote id {vote.Id}"));
-                }
 
-                if (vote.IsClosed()
-                    || !vote.CanVote())
+                var result = await voteService.GiveVoteAsync(request.SubjectId.ToString(), userId);
+                if (!result.Succeeded)
                 {
-                    return Results.Json(ResponseObject.Create("Vote has been closed or exceeded maximum count"),
-                        statusCode: StatusCodes.Status403Forbidden);
-                }
-
-                if (vote.Subjects.FirstOrDefault(s => s.Id == request.SubjectId) is not VoteSubject subject)
-                {
-                    return Results.NotFound(ResponseObject.Create($"Subject id {request.SubjectId} not found"));
-                }
-
-                var result = await voteService.GiveVoteAsync(subject.Id.ToString(), userId);
-                if (!result)
-                {
-                    remainingRetry--;
-                }
-                else
-                {
-                    if (remainingRetry < maxRetry)
+                    return result.ErrorCode switch
                     {
-                        LogInformation(logger, $"User {email} succeeded giving vote after " +
-                            $"retrying for {maxRetry - remainingRetry} time(s)");
-                    }
-                    success = true;
+                        GenericServiceErrorCode.InvalidObject => Results.BadRequest(
+                            ResponseObject.ValidationError(result.Error)),
+                        GenericServiceErrorCode.NotFound => Results.NotFound(
+                            ResponseObject.Create(result.Error.Single())),
+                        GenericServiceErrorCode.Conflicted => Results.Conflict(
+                            ResponseObject.Create(result.Error.Single())),
+                        GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
+                            ResponseObject.ServerError()),
+                    };
                 }
+
+                if (remainingRetry < maxRetry)
+                {
+                    LogInformation(logger, $"User {email} succeeded giving vote after " +
+                        $"retrying for {maxRetry - remainingRetry} time(s)");
+                }
+                voteInput = result.Value;
+                vote = result.Value.VoteSubject!.Vote!;
+                success = true;
+                break;
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -277,13 +279,12 @@ public static class VoteHandlers
             LogError(logger, "Unexpected error happened while writing updated vote notification", ex);
         }
 
-        return Results.Ok(ResponseObject.Success(vote.ToResponse()));
+        return Results.Ok(ResponseObject.Success(voteInput.ToResponse()));
     }
 
-    public static async Task<IResult> InputQueue([AsParameters] GiveVoteRequest request,
+    public static async Task<IResult> InputQueue([AsParameters] InputVoteRequest request,
         HttpContext httpContext,
-        [FromServices] IVoteService voteService,
-        [FromServices] IVoteQueueWriter voteQueue,
+        [FromServices] IVoteQueueService voteQueueService,
         [FromServices] ILoggerFactory loggerFactory)
     {
         if (request == null)
@@ -311,41 +312,113 @@ public static class VoteHandlers
             return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        var vote = await voteService.GetVoteByIdAsync(request.VoteId);
+        var result = await voteQueueService.QueueVoteAsync(request.SubjectId.ToString(), userId);
+        if (!result.Succeeded)
+        {
+            return result.ErrorCode switch
+            {
+                GenericServiceErrorCode.InvalidObject => Results.BadRequest(
+                    ResponseObject.ValidationError(result.Error)),
+                GenericServiceErrorCode.NotFound => Results.NotFound(
+                    ResponseObject.Create(result.Error.Single())),
+                GenericServiceErrorCode.Conflicted => Results.Conflict(
+                    ResponseObject.Create(result.Error.Single())),
+                GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
+                    ResponseObject.ServerError()),
+            };
+        }
+
+        return Results.Ok(ResponseObject.Success(result.Value.ToResponse()));
+    }
+
+    public static async Task<IResult> Update(string? id, UpdateVoteRequest? request,
+        HttpContext httpContext,
+        [FromServices] IVoteService voteService,
+        [FromServices] ILoggerFactory loggerFactory)
+    {
+        if (id == null)
+        {
+            return Results.BadRequest(ResponseObject.BadQuery());
+        }
+
+        if (request == null)
+        {
+            return Results.BadRequest(ResponseObject.BadBody());
+        }
+
+        var logger = loggerFactory.CreateLogger(nameof(VoteHandlers));
+
+        var vote = await voteService.GetVoteByIdAsync(id);
 
         if (vote == null)
         {
-            return Results.NotFound(ResponseObject.Create($"Vote with id {request.VoteId} not found"));
+            return Results.NotFound(ResponseObject.Create($"Vote with id {id} not found"));
         }
 
-        if (vote.IsClosed()
-            || !vote.CanVote())
+        string userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        string email = httpContext.User.FindFirstValue(ClaimTypes.Email)!;
+        try
         {
-            return Results.Json(ResponseObject.Create("Vote has been closed or exceeded maximum count"),
-                statusCode: StatusCodes.Status403Forbidden);
+            var inputValidation = request.Validate();
+            if (!inputValidation.Succeeded)
+            {
+                return Results.BadRequest(ResponseObject.ValidationError(inputValidation.Error));
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            LogError(logger, $"Error happened while validating update vote request from user {email} ({userId}). " +
+                $"Field (name: {ex.FieldName}, value: {ex.FieldValue}), reference value: {ex.ReferenceValue}.",
+                ex);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
-        if (vote.Subjects.FirstOrDefault(s => s.Id == request.SubjectId) is not VoteSubject subject)
+        Vote? updatedVote = null;
+        try
         {
-            return Results.NotFound(ResponseObject.Create($"Subject id {request.SubjectId} not found"));
+            updatedVote = request.ToVote();
+        }
+        catch (DomainValidationException ex)
+        {
+            return Results.BadRequest(ResponseObject.ValidationError(ex.ValidationErrors));
+        }
+        catch (DomainException ex)
+        {
+            LogError(logger, $"Domain error happened while converting vote request to vote entity " +
+                $"from user {email} ({userId})",
+                ex);
+            return Results.InternalServerError(ResponseObject.ServerError());
         }
 
         try
         {
-            await voteQueue.WriteAsync(new VoteQueueItem()
+            var result = await voteService.UpdateVoteAsync(id, updatedVote);
+            if (!result.Succeeded)
             {
-                VoteId = request.VoteId,
-                SubjectId = request.SubjectId.ToString(),
-                UserId = userId
-            });
+                return result.ErrorCode switch
+                {
+                    GenericServiceErrorCode.InvalidObject => Results.BadRequest(
+                        ResponseObject.ValidationError(result.Error)),
+                    GenericServiceErrorCode.NotFound => Results.NotFound(
+                        ResponseObject.Create(result.Error.Single())),
+                    GenericServiceErrorCode.Conflicted => Results.Conflict(
+                        ResponseObject.Create(result.Error.Single())),
+                    GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
+                        ResponseObject.ServerError()),
+                };
+            }
+
+            updatedVote = result.Value;
         }
-        catch (Exception ex)
+        catch (DbUpdateConcurrencyException ex)
         {
-            LogError(logger, $"Unknown error happened while user {email} queuing vote {request.VoteId}", ex);
-            return Results.InternalServerError(ResponseObject.ServerError());
+            LogWarning(logger, $"DB concurrency error happened while updating vote entity from user {email} ({userId})",
+                ex);
+            return Results.Conflict(ResponseObject.Create("Failed to update vote due to the vote was being " +
+                "updated by another user. Please try again."));
         }
 
-        return Results.Ok(ResponseObject.Success($"Vote on {request.VoteId} and subject id {request.SubjectId} was succesfully queued"));
+        return Results.Ok(ResponseObject.Success(updatedVote.ToResponse()));
     }
 
     public static async Task<IResult> Delete(string? id,
@@ -363,12 +436,21 @@ public static class VoteHandlers
         }
 
         var result = await voteService.DeleteVoteAsync(vote);
-        if (!result)
+        if (!result.Succeeded)
         {
-            return Results.InternalServerError(ResponseObject.Create("There was an error on our side"));
+            return result.ErrorCode switch
+            {
+                GenericServiceErrorCode.InvalidObject => Results.BadRequest(
+                    ResponseObject.ValidationError(result.Error)),
+                GenericServiceErrorCode.NotFound => Results.NotFound(
+                    ResponseObject.Create(result.Error.Single())),
+                GenericServiceErrorCode.Conflicted => Results.Conflict(
+                    ResponseObject.Create(result.Error.Single())),
+                GenericServiceErrorCode.SystemError or _ => Results.InternalServerError(
+                    ResponseObject.ServerError()),
+            };
         }
 
         return Results.Ok(ResponseObject.Success(null!));
-
     }
 }

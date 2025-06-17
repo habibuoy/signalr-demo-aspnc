@@ -10,6 +10,7 @@ public static class DomainConfigurations
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IVoteService, DbVoteService>();
+        services.AddScoped<IVoteQueueService, DbVoteService>();
         services.AddSingleton<IHubConnectionManager, HubConnectionManager>();
         services.AddSingleton<IHubConnectionReader, HubConnectionManager>();
 

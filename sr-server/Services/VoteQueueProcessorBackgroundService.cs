@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
 using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
@@ -32,7 +31,7 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
             var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
             var vote = await voteService.GetVoteByIdAsync(item.VoteId);
-            var user = await userService.GetUserByIdAsync(item.UserId);
+            var user = await userService.GetUserByIdAsync(item.UserId!);
 
             if (vote == null)
             {
@@ -51,32 +50,11 @@ public class VoteQueueProcessorBackgroundService : BackgroundService
 
             try
             {
-                var inputs = vote.Subjects.SelectMany(s => s.Voters);
-
-                if (inputs.Any(i => i.VoterId != null && i.VoterId == userId))
+                var result = await voteService.GiveVoteAsync(item.SubjectId, userId);
+                if (!result.Succeeded)
                 {
-                    LogWarning(logger, $"User {email} have already given vote on vote id {vote.Id}.");
-                    continue;
-                }
-
-                if (vote.IsClosed()
-                    || !vote.CanVote())
-                {
-                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}. "+
-                        "Vote has been closed or exceeded maximum count.");
-                    continue;
-                }
-
-                if (vote.Subjects.FirstOrDefault(s => s.Id.ToString() == item.SubjectId) is not VoteSubject subject)
-                {
-                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}. Subject not found.");
-                    continue;
-                }
-
-                var result = await voteService.GiveVoteAsync(subject.Id.ToString(), userId);
-                if (!result)
-                {
-                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}.");
+                    LogWarning(logger, $"User {email} failed while giving vote on vote id {vote.Id}: " +
+                        $"{string.Join(", ", result.Error)}.");
                     continue;
                 }
 

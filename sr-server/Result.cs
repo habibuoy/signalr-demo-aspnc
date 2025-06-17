@@ -7,8 +7,8 @@ namespace SignalRDemo.Server;
 /// <typeparam name="TError">Error object type that is produced by failed operation</typeparam>
 public class Result<T, TError>
 {
-    protected readonly T? value;
-    protected readonly TError? error;
+    protected T? value;
+    protected TError? error;
 
     public bool Succeeded { get; protected set; }
     public T Value => Succeeded ? value! : throw new InvalidOperationException("Result is not successful");

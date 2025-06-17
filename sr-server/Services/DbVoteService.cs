@@ -6,23 +6,23 @@ using static SignalRDemo.Server.Utils.LogHelper;
 
 namespace SignalRDemo.Server.Services;
 
-public class DbVoteService : IVoteService
+public class DbVoteService : IVoteService, IVoteQueueService
 {
     private readonly ApplicationDbContext dbContext;
+    private readonly IVoteQueueWriter queueWriter;
     private readonly ILogger<DbVoteService> logger;
 
-
     public DbVoteService(ApplicationDbContext dbContext,
+        IVoteQueueWriter queueWriter,
         ILogger<DbVoteService> logger)
     {
         this.dbContext = dbContext;
+        this.queueWriter = queueWriter;
         this.logger = logger;
     }
 
-    public async Task<bool> AddVoteAsync(Vote vote)
+    public async Task<ServiceResult<Vote>> CreateVoteAsync(Vote vote)
     {
-        bool result = false;
-
         try
         {
             // clean the ids, let the EF Core generate them
@@ -32,31 +32,36 @@ public class DbVoteService : IVoteService
             }
 
             dbContext.Add(vote);
-            await dbContext.SaveChangesAsync();
+            var success = await dbContext.SaveChangesAsync() > 0;
 
-            result = true;
+            if (!success)
+            {
+                LogWarning(logger, $"Failed to create vote {vote.Title}");
+                return ServiceResult<Vote>.SystemError([$"Failed to create vote {vote.Title}"]);
+            }
 
-            LogInformation(logger, $"Successfully added vote {vote.Title} ({vote.Id})");
+            LogInformation(logger, $"Successfully created vote {vote.Title} ({vote.Id})");
+            return ServiceResult<Vote>.Succeed(vote);
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            LogWarning(logger, $"DB concurrency error happened while trying to add vote {vote.Id}: {ex.Message}");
+            LogWarning(logger, $"DB concurrency error happened while trying to create vote {vote.Id}: {ex.Message}");
         }
         catch (DbUpdateException ex)
         {
-            LogWarning(logger, $"DB error happened while trying to add vote {vote.Id}: {ex.Message}");
+            LogWarning(logger, $"DB error happened while trying to create vote {vote.Id}: {ex.Message}");
         }
         catch (OperationCanceledException ex)
         {
-            LogWarning(logger, $"Task cancelled while trying to add vote {vote.Id}: {ex.Message}");
+            LogWarning(logger, $"Task cancelled while trying to create vote {vote.Id}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            LogError(logger, $"Unexpected error happened while trying to add vote {vote.Id}",
+            LogError(logger, $"Unexpected error happened while trying to create vote {vote.Id}",
                 ex);
         }
 
-        return result;
+        return ServiceResult<Vote>.SystemError([$"Failed to create vote {vote.Title}"]);
     }
 
     public async Task<Vote?> GetVoteByIdAsync(string id)
@@ -150,23 +155,37 @@ public class DbVoteService : IVoteService
         return vote.Subjects.SelectMany(s => s.Voters);
     }
 
-    public async Task<bool> UpdateVoteAsync(string voteId, Vote vote)
+    public async Task<ServiceResult<Vote>> UpdateVoteAsync(string voteId, Vote vote)
     {
-        bool result = false;
-        string id = vote.Id;
+        string id = voteId;
 
         try
         {
-            var existing = await dbContext.Votes.FindAsync(voteId);
+            var existing = await dbContext.Votes.FindAsync(id);
             if (existing != null)
             {
-                existing.Subjects = vote.Subjects;
-                existing.Title = vote.Title;
+                try
+                {
+                    existing.UpdateFrom(vote);
+                }
+                catch (DomainValidationException ex)
+                {
+                    LogWarning(logger, $"Trying to update vote {id} with invalid fields");
+                    return ServiceResult<Vote>.Fail(GenericServiceErrorCode.InvalidObject, ex.ValidationErrors);
+                }
+                catch (DomainException ex)
+                {
+                    LogError(logger, $"Domain error happened while updating vote {existing.Title} ({id})",
+                        ex);
+                    return ServiceResult<Vote>.Fail(GenericServiceErrorCode.SystemError,
+                        [$"Domain error happened while updating vote {existing.Title} ({id}): {ex.Message}"]);
+                }
+
                 await dbContext.SaveChangesAsync();
 
-                result = true;
+                LogInformation(logger, $"Successfully updated vote {existing.Title} ({id})");
 
-                LogInformation(logger, $"Successfully updated vote {vote.Title} ({id})");
+                return ServiceResult<Vote>.Succeed(existing);
             }
         }
         catch (DbUpdateConcurrencyException ex)
@@ -205,33 +224,30 @@ public class DbVoteService : IVoteService
                 ex);
         }
 
-        return result;
+        return ServiceResult<Vote>.SystemError([$"Failed to update vote {id}"]);
     }
 
-    public async Task<bool> GiveVoteAsync(string subjectId, string? userId)
+    public async Task<ServiceResult<VoteSubjectInput>> GiveVoteAsync(string subjectId, string? userId)
     {
-        bool result = false;
-
         try
         {
-            var subject = await dbContext.VoteSubjects
-                .Include(vs => vs.Vote)
-                .FirstOrDefaultAsync(s => s.Id == int.Parse(subjectId));
-            if (subject != null)
+            var result = await ValidateVoteInput(subjectId, userId);
+
+            if (!result.Succeeded)
             {
-                subject.Voters.Add(new VoteSubjectInput()
-                {
-                    Id = 0,
-                    VoterId = userId,
-                    InputTime = DateTime.UtcNow
-                });
-                subject.Version = Guid.CreateVersion7();
-                await dbContext.SaveChangesAsync();
-
-                result = true;
-
-                LogInformation(logger, $"Successfully gave vote to {subject.Name} ({subjectId})");
+                return ServiceResult<VoteSubjectInput>.Fail(result.ErrorCode, result.Error);
             }
+
+            var subject = result.Value.Item1;
+            var voteInput = result.Value.Item2;
+
+            subject.Voters.Add(voteInput);
+            subject.Version = Guid.CreateVersion7();
+            await dbContext.SaveChangesAsync();
+
+            LogInformation(logger, $"Successfully gave vote to {subject.Name} ({subjectId})");
+
+            return ServiceResult<VoteSubjectInput>.Succeed(voteInput);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -269,28 +285,32 @@ public class DbVoteService : IVoteService
                 ex);
         }
 
-        return result;
+        return ServiceResult<VoteSubjectInput>.SystemError([$"Failed to give vote to subject {subjectId}"]);
     }
 
-    public async Task<bool> DeleteVoteAsync(Vote vote)
+    public async Task<ServiceResult<Vote>> DeleteVoteAsync(Vote vote)
     {
-        bool result = false;
         if (vote == null)
         {
-            return result;
+            LogWarning(logger, $"Trying to delete a null vote");
+            return ServiceResult<Vote>.Fail(GenericServiceErrorCode.SystemError,
+                ["Cannot delete a null vote"]);
         }
 
         string id = vote.Id;
         try
         {
             dbContext.Remove(vote);
-            var saveResult = await dbContext.SaveChangesAsync();
-            result = saveResult > 0;
+            var success = await dbContext.SaveChangesAsync() > 0;
 
-            if (result)
+            if (!success)
             {
-                LogInformation(logger, $"Successfully deleted vote {vote.Title} ({id})");
+                LogWarning(logger, $"Failed to delete vote {vote.Title}");
+                return ServiceResult<Vote>.SystemError([$"Failed to delete vote {vote.Title} ({id})"]);
             }
+
+            LogInformation(logger, $"Successfully deleted vote {vote.Title} ({id})");
+            return ServiceResult<Vote>.Succeed(vote);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -310,6 +330,95 @@ public class DbVoteService : IVoteService
                 ex);
         }
 
-        return result;
+        return ServiceResult<Vote>.Fail(GenericServiceErrorCode.SystemError,
+            [$"Failed to delete vote {vote.Title} ({vote.Id})"]);
+    }
+
+    public async Task<ServiceResult<VoteQueueInput>> QueueVoteAsync(string subjectId, string? userId)
+    {
+        var result = await ValidateVoteInput(subjectId, userId);
+
+        if (!result.Succeeded)
+        {
+            return ServiceResult<VoteQueueInput>.Fail(result.ErrorCode, result.Error);
+        }
+
+        var subject = result.Value.Item1;
+        var voteInput = result.Value.Item2;
+
+        try
+        {
+            await queueWriter.WriteAsync(new VoteQueueItem()
+            {
+                VoteId = subject.Vote!.Id,
+                SubjectId = subjectId,
+                UserId = voteInput.VoterId
+            });
+        }
+        catch (Exception ex)
+        {
+            LogError(logger, $"Unexpected error happened while writing vote queue on subject id {subjectId} " +
+                $"from userId {voteInput.VoterId}", ex);
+            return ServiceResult<VoteQueueInput>.SystemError([$"Failed to queue vote input on {subjectId}"]);
+        }
+
+        var queueInput = VoteQueueInput.Create(subject.Vote!.Id, subjectId, voteInput.VoterId);
+        return ServiceResult<VoteQueueInput>.Succeed(queueInput);
+    }
+
+    private async Task<ServiceResult<(VoteSubject, VoteSubjectInput)>>
+        ValidateVoteInput(string subjectId, string? userId)
+    {
+        if (!int.TryParse(subjectId, out var subjId))
+        {
+            LogWarning(logger, $"Failed to give vote to a subject with invalid id {subjectId}");
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.InvalidObject,
+                [$"Subject id {subjectId} is invalid"]);
+        }
+
+        var vote = await dbContext.Votes
+            .Include(v => v.Subjects)
+            .ThenInclude(s => s.Voters)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(v => v.Subjects.Any(s => s.Id == subjId));
+
+        if (vote == null)
+        {
+            LogWarning(logger, $"Vote related to subject with id {subjectId} not found while trying to give vote");
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.NotFound,
+                [$"Vote related with subject id {subjectId} not found"]);
+        }
+
+        var subject = vote.Subjects.FirstOrDefault(s => s.Id == subjId);
+
+        if (subject == null)
+        {
+            LogWarning(logger, $"Subject with id {subjectId} not found while trying to give vote");
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.NotFound,
+                [$"Subject id {subjectId} not found"]);
+        }
+
+        if (vote.IsClosed()
+            || !vote.CanVote())
+        {
+            LogWarning(logger, $"Failed to give vote to subject {subject.Name} ({subjectId}). " +
+                $"{vote.Title} ({vote.Id}) related to it is closed or has exceeded maximum count");
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.Conflicted,
+                [$"Vote is closed or has exceeded maximum count"]);
+        }
+
+        if (userId != null
+            && vote.Subjects.SelectMany(s => s.Voters)
+                .FirstOrDefault(i => i.VoterId == userId) is not null)
+        {
+            LogWarning(logger, $"User {userId} trying to give vote on Vote {subject.VoteId} while it has given " +
+                $"its vote on Vote {subject.VoteId}");
+            return ServiceResult<(VoteSubject, VoteSubjectInput)>.Fail(GenericServiceErrorCode.Conflicted,
+                [$"User {userId} has already given vote on Vote {subject.VoteId}"]);
+        }
+
+        var voteInput = VoteSubjectInput.Create(subject!.Id, userId);
+
+        return ServiceResult<(VoteSubject, VoteSubjectInput)>.Succeed((subject, voteInput));
     }
 }

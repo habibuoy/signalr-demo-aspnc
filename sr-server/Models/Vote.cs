@@ -8,7 +8,7 @@ public class Vote
 {
     public const int MinimumTitleLength = 3;
     public const int MinimumSubjectCount = 2;
-    
+
     public required string Id { get; init; }
     public required string Title { get; set; } = string.Empty;
     public List<VoteSubject> Subjects { get; set; } = new();
@@ -28,7 +28,7 @@ public class Vote
     });
 
     private Vote() { }
-    
+
     [SetsRequiredMembers]
     private Vote(string title, string[] subjects, User? creator,
         int? duration = null, int? maximumCount = null)
@@ -52,7 +52,7 @@ public class Vote
 
             if (validationErrors.Count > 0)
             {
-                throw new DomainException($"Validation error while creating {nameof(Vote)} entity. " +
+                throw new DomainValidationException($"Validation error while creating {nameof(Vote)} entity. " +
                     "Check out the errors property.", validationErrors);
             }
         }
@@ -82,6 +82,77 @@ public class Vote
         User = creator;
     }
 
+    [SetsRequiredMembers]
+    private Vote(string title, VoteSubject[] subjects, User? creator,
+        int? duration = null, int? maximumCount = null) 
+        : this(title, subjects.Select(s => s.Name).ToArray(), creator, duration, maximumCount) { }
+
+    public void UpdateFrom(Vote vote)
+    {
+        DateTime? updateExpiredDt = null;
+        try
+        {
+            var validationErrors = new List<string>();
+
+            if (ValidateTitle(vote.Title) is { Succeeded: false } titleValidation)
+                validationErrors.AddRange(titleValidation.Error);
+
+            string[] subjects = vote.Subjects == null ? null! : [.. vote.Subjects.Select(s => s.Name)];
+            if (ValidateSubjects(subjects) is { Succeeded: false } subjectsValidation)
+                validationErrors.AddRange(subjectsValidation.Error);
+
+            var maxCount = vote.MaximumCount;
+            if (maxCount != null)
+            {
+                var cCount = CurrentCount;
+                if (maxCount.Value < cCount)
+                {
+                    validationErrors.Add($"Maximum count ({maxCount}) cannot be less than current count ({cCount})");
+                }
+
+                if (ValidateMaximumCount(maxCount, subjects) is { Succeeded: false } maxCountValidation)
+                    validationErrors.AddRange(maxCountValidation.Error);
+            }
+
+            if (vote.ExpiredTime != null)
+            {
+                var duration = vote.ExpiredTime.Value - vote.CreatedTime;
+                if (ValidateDuration(duration.Seconds) is { Succeeded: false } durationValidation)
+                    validationErrors.AddRange(durationValidation.Error);
+                var dtNow = DateTime.UtcNow;
+                updateExpiredDt = CreatedTime.Add(duration);
+                if (updateExpiredDt < dtNow)
+                {
+                    validationErrors.Add($"Duration should not make " +
+                        $"the expired time earlier than now {dtNow}. With current duration ({duration} seconds), " +
+                        $"expired time would be on {updateExpiredDt}");
+                }
+            }
+
+            if (validationErrors.Count > 0)
+            {
+                throw new DomainValidationException($"Validation error while updating {nameof(Vote)} entity. " +
+                    "Check out the errors property.", validationErrors);
+            }
+        }
+        catch (ModelFieldValidatorException ex)
+        {
+            throw new DomainException($"Validator error happened while updating {nameof(Vote)} entity", ex);
+        }
+
+        Title = vote.Title;
+        Subjects.ForEach(sub =>
+        {
+            var matching = vote.Subjects!.Find(s => s.Id == sub.Id);
+            if (matching != null)
+            {
+                sub.Name = matching.Name;
+            }
+        });
+        MaximumCount = vote.MaximumCount;
+        ExpiredTime = updateExpiredDt;
+    }
+
     public bool IsClosed()
     {
         return ExpiredTime != null
@@ -108,17 +179,20 @@ public class Vote
         {
             if (Subjects.Find(v => v.Id == subjectId) is VoteSubject voteSubject)
             {
-                var voteInput = new VoteSubjectInput()
-                {
-                    VoterId = userId,
-                    InputTime = DateTime.UtcNow
-                };
 
+                var voteInput = VoteSubjectInput.Create(subjectId, userId);
                 voteSubject.Voters.Add(voteInput);
             }
         }
     }
 
-    public static Vote Create(string title, string[] subjects, User? creator, int? duration, int? maximumCount) =>
-        new(title, subjects, creator, duration, maximumCount);
+    public static Vote Create(string title, string[] subjects, User? creator, int? duration, int? maximumCount)
+        => new(title, subjects, creator, duration, maximumCount);
+
+    public static Vote Create(string title, VoteSubject[] subjects, User? creator, int? duration, int? maximumCount)
+    {
+        var vote = new Vote(title, subjects, creator, duration, maximumCount);
+        vote.Subjects = [.. subjects];
+        return vote;
+    }
 }
