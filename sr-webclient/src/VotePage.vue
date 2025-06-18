@@ -58,10 +58,10 @@
                                 <div class="mt-2">
                                     <div class="w-full bg-gray-200 rounded-full h-2">
                                         <div class="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                                            :style="{ width: `${calculatePercentage(subject.voteCount)}%` }"></div>
+                                            :style="{ width: `${getCurrentVotePercentage(subject.voteCount)}%` }"></div>
                                     </div>
                                     <div class="text-sm text-gray-600 mt-1">
-                                        {{ subject.voteCount }} votes ({{ calculatePercentage(subject.voteCount) }}%)
+                                        {{ subject.voteCount }} votes ({{ getCurrentVotePercentage(subject.voteCount) }}%)
                                     </div>
                                 </div>
                             </div>
@@ -88,7 +88,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
 import { Vote, VoteSubject, getVoteInputs, tryInputVote, getVotes } from './vote'
-import { delay } from './utils'
+import { delay, calculatePercentage } from './utils'
 
 const votes = ref([])
 const selectedVote = ref(null)
@@ -338,10 +338,11 @@ function getVoteInput(voteId) {
     return voteInputs.value.find((v) => v.voteId === voteId)
 }
 
-function calculatePercentage(voteCount) {
+function getCurrentVotePercentage(voteCount) {
     if (!selectedVote.value) return 0
+
     const totalVotes = selectedVote.value.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
-    return totalVotes === 0 || voteCount === 0 ? 0 : Math.round((voteCount / totalVotes) * 100)
+    return calculatePercentage(voteCount, totalVotes)
 }
 
 function formatTimeRemaining(expiredTime) {

@@ -2,7 +2,7 @@ export { Vote, VoteSubject, VoteInput, getVoteInputs, inputVote as tryInputVote,
         getVotes, createNewVote }
 
 async function getVotes(count = 10, sortOrder = "desc") {
-    const response = await fetch(`https://localhost:7000/votes?${count}=10&sortBy=cdt&sortOrder=${sortOrder}`, {
+    const response = await fetch(`https://localhost:7000/votes?count=${count}&sortBy=cdt&sortOrder=${sortOrder}`, {
         credentials: "include",
     })
 
