@@ -1,5 +1,5 @@
 export { Vote, VoteSubject, VoteInput, getVoteInputs, inputVote as tryInputVote, 
-        getVotes, createNewVote }
+        getVotes, createNewVote, updateVote, deleteVote }
 
 async function getVotes(count = 10, sortOrder = "desc") {
     const response = await fetch(`https://localhost:7000/votes?count=${count}&sortBy=cdt&sortOrder=${sortOrder}`, {
@@ -82,7 +82,6 @@ async function createNewVote(title, subjects, duration = 0, maxCount = 0) {
     const jsonBody = JSON.stringify(new VoteCreate(title, subjects, duration, maxCount), null, "\t")
     const reqHeader = new Headers()
     reqHeader.append("Content-Type", "application/json")
-    console.log(jsonBody)
     return fetch("https://localhost:7000/votes/", {
         method: "POST",
         credentials: "include",
@@ -104,10 +103,62 @@ async function createNewVote(title, subjects, duration = 0, maxCount = 0) {
                 return null
             }
 
-
             return new Vote(result.id, result.title, result.subjects, result.maximumCount, result.expiredTime)
         })
         .catch(error => console.error("Error happened while creating new vote", error))
+}
+
+async function updateVote(id, title, subjects, duration, maxCount) {
+    const updateRequest = new VoteUpdateRequest(title, subjects, duration, maxCount)
+    const jsonBody = JSON.stringify(updateRequest, null, "\t")
+    const reqHeader = new Headers()
+    reqHeader.append("Content-Type", "application/json")
+    return fetch(`https://localhost:7000/votes/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: reqHeader,
+        body: jsonBody
+    })
+        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+        .then(response => {
+            if (!response.isSuccess) {
+                if (response.json.message) {
+                    if (response.json.result.validationErrors) {
+                        console.log(`Failed when updating vote ${id}: ` +
+                            `${response.json.message}`, response.json.result.validationErrors)
+                    } else {
+                        console.log(`Failed when updating vote ${id}: `, response.json.message)
+                    }
+                    return null
+                }
+            }
+
+            return updateRequest
+        })
+        .catch(error => console.error(`Error happened while updating vote ${id}.`, error))
+}
+
+async function deleteVote(id) {
+    const reqHeader = new Headers()
+    reqHeader.append("Content-Type", "application/json")
+    return fetch(`https://localhost:7000/votes/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: reqHeader,
+        body: jsonBody
+    })
+        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+        .then(response => {
+            if (!response.isSuccess) {
+                if (response.json.message) {
+                    console.log(`Failed when deleting vote ${id}: `, response.json.message)
+                    return null
+                }
+            }
+
+            return id
+        })
+        .catch(error => console.error(`Error happened while updating vote ${id}.`, error))
 }
 
 class Vote {
@@ -156,5 +207,14 @@ class VoteCreate {
         this.subjects = subjects,
         this.duration = duration > 0 ? duration : null,
         this.maximumCount = maxCount > 0 ? maxCount : null
+    }
+}
+
+class VoteUpdateRequest {
+    constructor(title, subjects, duration, maxCount) {
+        this.title = title,
+        this.subjects = subjects,
+        this.duration = duration,
+        this.maximumCount = maxCount
     }
 }

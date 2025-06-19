@@ -1,4 +1,4 @@
-<template>
+<template e>
     <div class="relative" aria-labelledby="modal-title" role="dialog"
         aria-modal="true">
         <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true"></div>
@@ -6,7 +6,7 @@
             <div class="flex min-h-full justify-center p-4 text-center items-center sm:p-0">
                 <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
                     <h2 class="text-2xl font-bold mb-6 text-center">{{ props.formTitle }}</h2>
-                    <form @submit.prevent="onClickCreate">
+                    <form id="vote-form" @submit.prevent="onClickPositive">
                         <div class="mb-4">
                             <label class="block mb-1 text-gray-700">Title</label>
                             <input v-model="voteTitle" type="text" class="w-full px-3 py-2 border rounded" required />
@@ -37,7 +37,7 @@
                                 bg-blue-600 px-3 py-2 text-sm font-semibold 
                                 text-white shadow-xs 
                                 hover:bg-blue-500 sm:ml-3 sm:w-auto">
-                                Create
+                                {{ props.positiveText }}
                             </button>
                         </div>
                     </form>
@@ -48,13 +48,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const props = defineProps({
     formTitle: {
         type: String,
         default: "Form Title",
         required: true
+    },
+    id: {
+        type: String,
+        default: null
     },
     title: {
         type: String,
@@ -72,9 +76,21 @@ const props = defineProps({
         type: Number,
         default: 0
     },
-    closeOnCreate: {
+    closeOnPositive: {
         type: Boolean,
         default: true
+    },
+    positiveText: {
+        type: String,
+        default: 'OK'
+    },
+    negativeText: {
+        type: String,
+        default: 'Close'
+    },
+    readonly: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -82,9 +98,30 @@ const emit = defineEmits(["create", "close"])
 
 const validMinSubjectCount = 2
 const voteTitle = ref(props.title)
-const voteSubjects = ref(props.subjects)
+const voteSubjects = ref(props.subjects.reduce((acc, elm) => {
+    acc.push(elm.name)
+    return acc
+}, []))
 const voteDuration = ref(props.duration)
 const voteMaxCount = ref(props.maxCount)
+
+const voteSubjectIds = []
+
+onMounted(() => {
+    if (props.subjects.length > 0) {
+        for (const subj of props.subjects) {
+            voteSubjectIds.push(subj.id)
+        }
+    }
+
+    if (props.readonly) {
+        const form = document.getElementById('vote-form')
+        const inputs = form.getElementsByTagName('input')
+        for (let i = 0; i < inputs.length; i++) {
+            inputs.item(i).disabled = true
+        }
+    }
+})
 
 let currentSubjectCount = 0
 let subjects = []
@@ -107,6 +144,10 @@ function validateSubjectsInput(event) {
 
     if (!isSubjectCountValid()) {
         inputElement.setCustomValidity("Please provide at least 2 subjects")
+    }
+    else if (voteSubjectIds.length > 0
+        && currentSubjectCount != voteSubjectIds.length) {
+        inputElement.setCustomValidity(`Please provide the same amount of subjects as before (${voteSubjectIds.length})`)
     }
     else
     {
@@ -137,15 +178,19 @@ function validateMaximumCountInput(event) {
     }
 }
 
-function onClickCreate() {
-    emit("create", { 
+function onClickPositive() {
+    emit("positive", { 
+        voteId: props.id,
         voteTitle: voteTitle.value, 
-        voteSubjects: subjects, 
+        voteSubjects: voteSubjectIds.reduce((acc, index, elm) => {
+            acc.push({ id: elm, name: subjects[index] })
+            return acc
+        }, []), 
         voteDuration: voteDuration.value, 
         voteMaxCount: voteMaxCount.value 
     })
     
-    if (props.closeOnCreate === true) {
+    if (props.closeOnPositive === true) {
         emit("close")
     }
 }

@@ -23,13 +23,11 @@
                     No votes available
                 </div>
                 <div v-else v-for="vote in votes" :key="vote.id"
-                    :class="['mv-item', { selected: selectedVoteId === vote.id }]"
-                    @click="selectVote(vote.id)">
+                    :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="selectVote(vote.id)">
                     <div class="flex justify-between items-start">
                         <div>
                             <h3 class="text-lg font-semibold">{{ vote.title }}</h3>
-                            <button @click.stop="toggleSubjects(vote.id)" 
-                                    class="mv-subject-count">
+                            <button @click.stop="toggleSubjects(vote.id)" class="mv-subject-count">
                                 {{ vote.subjects.length }} subjects
                             </button>
                         </div>
@@ -47,21 +45,20 @@
                     </div>
 
                     <div :class="['mv-subjects', { expanded: expandedSubjectsId === vote.id }]">
-                        <div v-for="subject in vote.subjects" :key="subject.id"
-                             class="mv-subject">
+                        <div v-for="subject in vote.subjects" :key="subject.id" class="mv-subject">
                             <span>{{ subject.name }}</span>
-                            <span class="text-gray-600">{{ subject.voteCount }} votes 
+                            <span class="text-gray-600">{{ subject.voteCount }} votes
                                 ({{ calculatePercentage(subject.voteCount, vote.totalCount) }}%)</span>
                         </div>
                     </div>
 
                     <div :class="['mv-actions', { visible: selectedVoteId === vote.id }]">
                         <div class="flex gap-2">
-                            <button @click.stop="editVote(vote)"
+                            <button @click.stop="onClickEdit(vote)"
                                 class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
                                 Edit
                             </button>
-                            <button @click.stop="deleteVote(vote)"
+                            <button @click.stop="onClickDelete(vote)"
                                 class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600">
                                 Delete
                             </button>
@@ -74,14 +71,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { readonly, ref } from 'vue'
 import { spawnLoading } from './components/loading'
 import Navbar from './components/Navbar.vue'
 import { delay, calculatePercentage } from './utils'
 import { spawnResultPopup } from './components/resultPopup'
 import { spawnComponent } from './components/componentSpawner'
 import VoteForm from './components/VoteForm.vue'
-import { createNewVote, getVotes } from './vote'
+import { createNewVote, getVotes, updateVote, deleteVote } from './vote'
 
 let voteForm = null
 const showVotes = ref(false)
@@ -93,7 +90,6 @@ const isLoading = ref(false)
 async function fetchVotes() {
     isLoading.value = true
     try {
-        await delay(1000) // Simulating network delay
         votes.value = await getVotes(25)
     } catch (error) {
         console.error('Failed to fetch votes:', error)
@@ -111,8 +107,8 @@ function onClickCreateVote() {
 }
 
 function openCreateVoteDialog() {
-    voteForm = spawnComponent(VoteForm, { 
-        formTitle: "Create a new Vote", closeOnCreate: false, onCreate: onCreate 
+    voteForm = spawnComponent(VoteForm, {
+        formTitle: "Create a new Vote", closeOnPositive: false, onPositive: onCreate
     }, { zIndex: "20" })
     voteForm.onDestroy.subscribe(() => voteForm = null)
 }
@@ -139,14 +135,108 @@ function formatExpiry(date) {
     return new Date(date).toLocaleString()
 }
 
-function editVote(vote) {
-    // TODO: Implement edit functionality
-    console.log('Edit vote:', vote)
+function onClickEdit(vote) {
+    voteForm = spawnComponent(VoteForm, {
+        id: vote.id,
+        formTitle: `Update vote ${vote.title}`,
+        title: vote.title,
+        subjects: vote.subjects.reduce((acc, elm) => {
+            acc.push({ id: elm.id, name: elm.name })
+            return acc
+        }, []),
+        duration: vote.duration ? vote.duration : 0,
+        maxCount: vote.maximumCount ? vote.maximumCount : 0,
+        closeOnPositive: false,
+        positiveText: "Confirm Edit",
+        onPositive: onEditVote
+    })
+    voteForm.onDestroy.subscribe(() => voteForm = null)
 }
 
-function deleteVote(vote) {
-    // TODO: Implement delete functionality
-    console.log('Delete vote:', vote)
+async function onEditVote(data) {
+    if (!data) {
+        console.log("no data return from vote update form")
+        return
+    }
+
+    const loading = spawnLoading({ loadingText: "Updating vote..." }, "20");
+    const result = await updateVote(data.voteId, data.voteTitle,
+        data.voteSubjects, data.voteDuration, data.maxCount
+    )
+
+    loading.destroy()
+
+    let resultText = "Update vote failed"
+    let success = false
+
+    if (result) {
+        resultText = "Successfully updated vote"
+        success = true
+        if (voteForm.destroy) {
+            voteForm.destroy()
+        }
+    }
+
+    spawnResultPopup({ feedbackText: resultText, success }, "21")
+    if (success) {
+        await fetchVotes()
+    }
+}
+
+function onClickDelete(vote) {
+    voteForm = spawnComponent(VoteForm, {
+        id: vote.id,
+        formTitle: `Are you sure want to DELETE this vote?`,
+        title: vote.title,
+        subjects: vote.subjects.reduce((acc, elm) => {
+            acc.push({ id: elm.id, name: elm.name })
+            return acc
+        }, []),
+        duration: vote.duration ? vote.duration : 0,
+        maxCount: vote.maximumCount ? vote.maximumCount : 0,
+        closeOnPositive: false,
+        positiveText: "Confirm",
+        onPositive: onDeleteVote,
+        readonly: true
+    })
+    voteForm.onDestroy.subscribe(() => voteForm = null)
+}
+
+async function onDeleteVote(data) {
+    if (!data) {
+        console.log("no data return from vote update form")
+        return
+    }
+
+    const loading = spawnLoading({ loadingText: "Deleting vote..." }, "20");
+
+    try {
+        const result = await deleteVote(data.voteId)
+
+        let resultText = "Delete vote failed"
+        let success = false
+
+        if (result) {
+            resultText = "Successfully deleted vote"
+            success = true
+            if (voteForm.destroy) {
+                voteForm.destroy()
+            }
+        }
+
+        spawnResultPopup({ feedbackText: resultText, success }, "21")
+        if (success) {
+            await fetchVotes()
+        }
+    }
+    catch (error) {
+        console.error("Error happened while deleting vote", error)
+        spawnResultPopup({ feedbackText: "Delete vote failed", success: false }, "21")
+    }
+    finally
+    {
+        loading.destroy()
+    }
 }
 
 async function onCreate(d) {
@@ -155,7 +245,7 @@ async function onCreate(d) {
         return
     }
 
-    const loading = spawnLoading({loadingText: "Creating new vote..." }, "20")
+    const loading = spawnLoading({ loadingText: "Creating new vote..." }, "20")
     const vote = await createNewVote(d.voteTitle, d.voteSubjects, d.voteDuration, d.voteMaxCount)
 
     loading.destroy()
