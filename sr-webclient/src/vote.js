@@ -145,7 +145,6 @@ async function deleteVote(id) {
         method: "DELETE",
         credentials: "include",
         headers: reqHeader,
-        body: jsonBody
     })
         .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
         .then(response => {
