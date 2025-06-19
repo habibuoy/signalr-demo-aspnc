@@ -213,7 +213,7 @@ class VoteUpdateRequest {
     constructor(title, subjects, duration, maxCount) {
         this.title = title,
         this.subjects = subjects,
-        this.duration = duration,
-        this.maximumCount = maxCount
+        this.duration = duration > 0 ? duration : null,
+        this.maximumCount = maxCount > 0 ? maxCount : null
     }
 }

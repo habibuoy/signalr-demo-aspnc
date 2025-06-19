@@ -108,9 +108,51 @@ function onClickCreateVote() {
 
 function openCreateVoteDialog() {
     voteForm = spawnComponent(VoteForm, {
-        formTitle: "Create a new Vote", closeOnPositive: false, onPositive: onCreate
+        formTitle: "Create a new Vote", closeOnPositive: false, onPositive: onCreateVote
     }, { zIndex: "20" })
     voteForm.onDestroy.subscribe(() => voteForm = null)
+}
+
+async function onCreateVote(d) {
+    if (!d) {
+        console.log("no data return from vote create form")
+        return
+    }
+
+    const loading = spawnLoading({ loadingText: "Creating new vote..." }, "20")
+    const subjects = d.voteSubjects.reduce((acc, elm) => {
+        acc.push(elm.name)
+        return acc
+    }, [])
+
+    try {
+        const vote = await createNewVote(d.voteTitle, subjects, d.voteDuration, d.voteMaxCount)
+
+        if (voteForm && voteForm.destroy) {
+            voteForm.destroy()
+        }
+
+        if (!vote) {
+            spawnResultPopup({
+                feedbackText: `Failed creating new vote ${d.voteTitle}`,
+                success: false
+            })
+            return
+        }
+
+        spawnResultPopup({
+            feedbackText: `Successfully created new vote ${d.voteTitle}`,
+            success: true
+        })
+
+        if (showVotes.value) {
+            await fetchVotes() // Refresh the list
+        }
+    } catch (error) {
+        spawnResultPopup({ feedbackText: "Failed creating vote", success: false })
+    } finally {
+        loading.destroy()
+    }
 }
 
 async function toggleVoteList() {
@@ -160,26 +202,30 @@ async function onEditVote(data) {
     }
 
     const loading = spawnLoading({ loadingText: "Updating vote..." }, "20");
-    const result = await updateVote(data.voteId, data.voteTitle,
-        data.voteSubjects, data.voteDuration, data.maxCount
-    )
 
-    loading.destroy()
+    try {
+        const result = await updateVote(data.voteId, data.voteTitle,
+            data.voteSubjects, data.voteDuration, data.voteMaxCount)
 
-    let resultText = "Update vote failed"
-    let success = false
+        let resultText = "Update vote failed"
+        let success = false
 
-    if (result) {
-        resultText = "Successfully updated vote"
-        success = true
-        if (voteForm.destroy) {
-            voteForm.destroy()
+        if (result) {
+            resultText = "Successfully updated vote"
+            success = true
+            if (voteForm.destroy) {
+                voteForm.destroy()
+            }
         }
-    }
 
-    spawnResultPopup({ feedbackText: resultText, success }, "21")
-    if (success) {
-        await fetchVotes()
+        spawnResultPopup({ feedbackText: resultText, success }, "21")
+        if (success) {
+            await fetchVotes()
+        }
+    } catch (error) {
+        spawnResultPopup({ feedbackText: "Failed updating vote", success: false })
+    } finally {
+        loading.destroy()
     }
 }
 
@@ -228,46 +274,11 @@ async function onDeleteVote(data) {
         if (success) {
             await fetchVotes()
         }
-    }
-    catch (error) {
+    } catch (error) {
         console.error("Error happened while deleting vote", error)
         spawnResultPopup({ feedbackText: "Delete vote failed", success: false }, "21")
-    }
-    finally
-    {
+    } finally {
         loading.destroy()
-    }
-}
-
-async function onCreate(d) {
-    if (!d) {
-        console.log("no data return from vote create form")
-        return
-    }
-
-    const loading = spawnLoading({ loadingText: "Creating new vote..." }, "20")
-    const vote = await createNewVote(d.voteTitle, d.voteSubjects, d.voteDuration, d.voteMaxCount)
-
-    loading.destroy()
-    if (voteForm && voteForm.destroy) {
-        voteForm.destroy()
-    }
-
-    if (!vote) {
-        spawnResultPopup({
-            feedbackText: `Failed when creating new vote ${d.voteTitle}`,
-            success: false
-        })
-        return
-    }
-
-    spawnResultPopup({
-        feedbackText: `Succeeded when creating new vote ${d.voteTitle}`,
-        success: true
-    })
-
-    if (showVotes.value) {
-        await fetchVotes() // Refresh the list
     }
 }
 </script>

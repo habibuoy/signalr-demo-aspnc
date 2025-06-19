@@ -111,6 +111,7 @@ onMounted(() => {
     if (props.subjects.length > 0) {
         for (const subj of props.subjects) {
             voteSubjectIds.push(subj.id)
+            subjects.push(subj.name)
         }
     }
 
@@ -182,8 +183,8 @@ function onClickPositive() {
     emit("positive", { 
         voteId: props.id,
         voteTitle: voteTitle.value, 
-        voteSubjects: voteSubjectIds.reduce((acc, index, elm) => {
-            acc.push({ id: elm, name: subjects[index] })
+        voteSubjects: subjects.reduce((acc, elm, index) => {
+            acc.push({ id: voteSubjectIds.length > 0 ? voteSubjectIds[index] : null, name: elm })
             return acc
         }, []), 
         voteDuration: voteDuration.value, 
