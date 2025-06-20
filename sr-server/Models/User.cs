@@ -21,7 +21,7 @@ public class User
     {
         try
         {
-            Dictionary<string, List<string>> validationErrors = new();
+            var validationErrors = new Dictionary<string, List<string>>();
             var emailValidation = ValidateEmail(email);
             if (!emailValidation.Succeeded)
                 validationErrors.Add(nameof(email), emailValidation.Error);
@@ -48,7 +48,7 @@ public class User
             {
                 throw new DomainValidationException($"Validation error while creating {nameof(User)} entity. " +
                     "Check out the errors property.",
-                    (IReadOnlyDictionary<string, IReadOnlyList<string>>)validationErrors);
+                    validationErrors);
             }
         }
         catch (ModelFieldValidatorException ex)

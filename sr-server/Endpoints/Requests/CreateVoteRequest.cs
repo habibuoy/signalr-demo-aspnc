@@ -40,7 +40,7 @@ public record CreateVoteRequest(string Title, string[] Subjects, int? Duration, 
         catch (JsonException ex)
         {
             httpContext.RequestServices.GetRequiredService<ILogger<Program>>()
-                .LogInformation("Failed to parse CreateVoteDto: {msg}", ex.Message);
+                .LogInformation("Failed to parse CreateVoteRequest: {msg}", ex.Message);
             return null;
         }
     }

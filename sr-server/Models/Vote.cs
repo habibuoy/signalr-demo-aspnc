@@ -37,7 +37,7 @@ public class Vote
 
         try
         {
-            Dictionary<string, IReadOnlyList<string>> validationErrors = new();
+            var validationErrors = new Dictionary<string, List<string>>();
             if (ValidateTitle(title) is { Succeeded: false } titleValidation)
                 validationErrors.Add(nameof(title), titleValidation.Error);
 
@@ -152,7 +152,7 @@ public class Vote
             if (validationErrors.Count > 0)
             {
                 throw new DomainValidationException($"Validation error while updating {nameof(Vote)} entity. " +
-                    "Check out the errors property.", (IReadOnlyDictionary<string, IReadOnlyList<string>>) validationErrors);
+                    "Check out the errors property.", validationErrors);
             }
         }
         catch (ModelFieldValidatorException ex)

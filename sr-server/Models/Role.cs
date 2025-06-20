@@ -24,7 +24,8 @@ public class Role
             if (validationErrors.Count > 0)
             {
                 throw new DomainValidationException($"Validation error while creating {nameof(Role)} entity. " +
-                    "Check out the errors property.", (IReadOnlyDictionary<string, IReadOnlyList<string>>) validationErrors);
+                    "Check out the errors property.",
+                    validationErrors);
             }
         }
         catch (ModelFieldValidatorException ex)
