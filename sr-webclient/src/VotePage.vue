@@ -12,7 +12,7 @@
                         :id="index" :class="{
                             'ring-2 ring-blue-500': selectedVote?.id === vote.id,
                             'interactable': isListInteractable
-                        }" @click="selectVote(vote)">
+                        }" @click="onVoteItemClicked(vote)">
                         <h3 class="text-lg font-semibold mb-2">{{ vote.title }}</h3>
                         <div class="text-sm text-gray-500">
                             {{ vote.subjects.length }} subjects
@@ -66,7 +66,7 @@
                                 </div>
                             </div>
                             <button v-if="selectedVote.canVote() && !getVoteInput(selectedVote.id)" 
-                                @click="inputVote(selectedVote.id, subject.id)"
+                                @click="onInputVoteClicked(selectedVote.id, subject.id)"
                                 class="vote-button"
                                 :class="{'opacity-50 cursor-not-allowed': inputtingVote}">
                                 {{ inputtingVote ? "Voting..." : "Vote" }}
@@ -87,7 +87,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
-import { Vote, VoteSubject, getVoteInputs, tryInputVote, getVotes } from './vote'
+import { Vote, VoteSubject, getVoteInputs, inputVote, getVotes } from './vote'
 import { delay, calculatePercentage } from './utils'
 
 const votes = ref([])
@@ -155,15 +155,17 @@ onMounted(async () => {
 async function loadVotes() {
     const votesResult = await getVotes()
 
-    if (!votesResult) {
-        console.log("Failed loading votes")
+    if (!votesResult || votesResult.errorMessage) {
+        console.error(`Failed loading votes: ${votesResult.errorMessage}`)
         return
     }
 
+    const result = votesResult.result
+
     voteList.value.addEventListener("animationend", onVoteListAnimationEnded)
 
-    for (let i = 0; i < votesResult.length; i++) {
-        votes.value.push(votesResult[i])
+    for (let i = 0; i < result.length; i++) {
+        votes.value.push(result[i])
         await nextTick()
         scrollToEnd()
         await delay(150)
@@ -174,7 +176,7 @@ async function onVoteListAnimationEnded(anim) {
     if (anim.srcElement.id == (votes.value.length - 1)) {
         await delay(250)
         if (votes.value.length > 0) {
-            selectVote(votes.value[0])
+            onVoteItemClicked(votes.value[0])
             scrollToStart()
         }
         isListInteractable.value = true
@@ -182,17 +184,17 @@ async function onVoteListAnimationEnded(anim) {
     }
 }
 
-async function inputVote(voteId, subjectId) {
+async function onInputVoteClicked(voteId, subjectId) {
     inputtingVote.value = { voteId: voteId, subjectId: subjectId }
 
-    await tryInputVote(voteId, subjectId)
+    await inputVote(voteId, subjectId)
 
     await updateVoteInputs()
     inputtingVote.value = null
 }
 
 async function updateVoteInputs() {
-    voteInputs.value = await getVoteInputs()
+    voteInputs.value = (await getVoteInputs()).result
 }
 
 // Watch voteList ref and setup event listeners
@@ -272,7 +274,7 @@ function scrollToEnd() {
     }
 }
 
-async function selectVote(vote) {
+async function onVoteItemClicked(vote) {
     isListInteractable.value = false
     if (currentRemainingTimeIntervalId.value) {
         clearInterval(currentRemainingTimeIntervalId.value)

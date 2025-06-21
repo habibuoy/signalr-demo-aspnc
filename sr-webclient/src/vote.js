@@ -1,163 +1,160 @@
-export { Vote, VoteSubject, VoteInput, getVoteInputs, inputVote as tryInputVote, 
-        getVotes, createNewVote, updateVote, deleteVote }
+import { httpFetch, HttpMethod } from './utils'
 
-async function getVotes(count = 10, sortOrder = "desc") {
-    const response = await fetch(`https://localhost:7000/votes?count=${count}&sortBy=cdt&sortOrder=${sortOrder}`, {
-        credentials: "include",
-    })
+export {
+    Vote, VoteSubject, VoteInput, getVoteInputs, inputVote,
+    getVotes, createNewVote, updateVote, deleteVote
+}
 
-    if (!response.ok) {
-        console.log("failed fetching votes")
-        return null
-    }
+const BaseUrl = "https://localhost:7000"
+const VotesPath = "/votes"
+const InputsPath = "/inputs"
+const VotesUrl = BaseUrl + VotesPath
+const VoteInputUrl = VotesUrl + InputsPath
+const UserVoteInputs = BaseUrl + "/users/vote-inputs"
 
-    const data = await response.json()
-    if (!data.result) return null
+const VotesQueryParam = {
+    COUNT: "count",
+    SORTBY: "sortBy",
+    SORTORDER: "sortOrder",
+    VOTEID: "voteId",
+    SUBJECTID: "subjectId"
+}
 
-    const mappedVotes = data.result.map(vote => {
-        const v = new Vote(
-            vote.id,
-            vote.title,
-            vote.subjects.map(subject => new VoteSubject(
-                subject.id,
-                subject.name,
-                subject.voteCount
-            )),
-            vote.maximumCount,
-            vote.expiredTime
-        )
-        v.totalCount = vote.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
-        return v
-    })
+async function getVotes(count = 10, sortOrder = "desc", sortBy = "cdt") {
+    return httpFetch(`${VotesUrl}?${VotesQueryParam.COUNT}=${count}&${VotesQueryParam.SORTBY}=${sortBy}&${VotesQueryParam.SORTORDER}=${sortOrder}`)
+        .then(response => {
+            const requestResult = {}
+            if (!response.isSuccess) {
+                requestResult.errorMessage = response.statusCode
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                requestResult.result = response.result.map(vote => {
+                    const v = new Vote(
+                        vote.id,
+                        vote.title,
+                        vote.subjects.map(subject => new VoteSubject(
+                            subject.id,
+                            subject.name,
+                            subject.voteCount
+                        )),
+                        vote.maximumCount,
+                        vote.expiredTime
+                    )
+                    v.totalCount = vote.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
+                    return v
+                })
+            }
 
-    return mappedVotes
+            return requestResult
+        })
+        .catch(error => {
+            console.error("Error happened while fetching votes vote", error)
+            return { errorMessage: "There was an error getting vote list" }
+        })
 }
 
 async function inputVote(voteId, subjectId) {
-    return fetch(`https://localhost:7000/votes/inputs?voteId=${voteId}&subjectId=${subjectId}`, {
-        method: "POST",
-        credentials: "include"
-    })
-        .then(async response => {
-            const jsonBody = await response.json()
-            if (!response.ok) {
-                if (jsonBody.message) {
-                    console.log(`Failed when inputting vote (Code ${result.status}). Message: ${jsonBody.message}`)
-                    return false
-                }
+    return httpFetch(`${VoteInputUrl}?${VotesQueryParam.VOTEID}=${voteId}&${VotesQueryParam.SUBJECTID}=${subjectId}`, HttpMethod.POST)
+        .then(response => {
+            const requestResult = {}
+            if (!response.isSuccess) {
+                requestResult.errorMessage = response.message
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                const inp = response.result
+                requestResult.result = new VoteInput(
+                    inp.id, inp.voteId, inp.voteTitle, inp.subjectId, inp.subjectName, inp.inputTime
+                )
             }
 
-            return true
+            return requestResult
         })
-        .catch(error => console.error("Error happened while inputting vote", error))
+        .catch(error => {
+            console.error(`Error happened while inputting on subject ${subjectId} in vote ${voteId}`, error)
+            return { errorMessage: "There was an error while inputting vote" }
+        })
 }
 
 async function getVoteInputs() {
-    return fetch("https://localhost:7000/users/vote-inputs", {
-        credentials: 'include'
-    })
-        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+    return httpFetch(`${UserVoteInputs}`)
         .then(response => {
+            const requestResult = {}
             if (!response.isSuccess) {
-                if (response.json.message) {
-                    console.log("Failed when fetching vote inputs: ", response.json.message)
-                    return null
-                }
+                requestResult.errorMessage = response.message
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                requestResult.result = response.result.map((inp) => new VoteInput(
+                    inp.id, inp.voteId, inp.voteTitle, inp.subjectId, inp.subjectName, inp.inputTime
+                ))
             }
 
-            if (!response.json.result) {
-                console.log("Succeeded fetching vote inputs but no result object: ", response.json.message)
-                return null
-            }
-
-            const result = response.json.result
-            return result.map((inp) => new VoteInput(
-                inp.id, inp.voteId, inp.voteTitle, inp.subjectId, inp.subjectName, inp.inputTime
-            ))
+            return requestResult
         })
-        .catch(error => console.error("Error happened while updating vote inputs", error))
+        .catch(error => {
+            console.error("Error happened while fetching vote inputs", error)
+            return { errorMessage: "There was an error while getting vote input list" }
+        })
 }
 
 async function createNewVote(title, subjects, duration = 0, maxCount = 0) {
-    const jsonBody = JSON.stringify(new VoteCreate(title, subjects, duration, maxCount), null, "\t")
-    const reqHeader = new Headers()
-    reqHeader.append("Content-Type", "application/json")
-    return fetch("https://localhost:7000/votes/", {
-        method: "POST",
-        credentials: "include",
-        headers: reqHeader,
-        body: jsonBody
-    })
-        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+    return httpFetch(VotesUrl, HttpMethod.POST,
+        new VoteCreate(title, subjects, duration, maxCount))
         .then(response => {
+            const requestResult = {}
             if (!response.isSuccess) {
-                if (response.json.message) {
-                    console.log("Failed when creating new vote: ", response.json.message)
-                    return null
-                }
+                requestResult.errorMessage = response.message
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                const vote = response.result
+                requestResult.result = new Vote(vote.id, vote.title, vote.subjects, vote.maximumCount, vote.expiredTime)
             }
 
-            const result = response.json.result
-            if (!result) {
-                console.log("Succeeded fetching vote inputs but no result object: ", response.json.message)
-                return null
-            }
-
-            return new Vote(result.id, result.title, result.subjects, result.maximumCount, result.expiredTime)
+            return requestResult
         })
-        .catch(error => console.error("Error happened while creating new vote", error))
+        .catch(error => {
+            console.error(`Error happened while creating new vote ${title}`, error)
+            return { errorMessage: "There was an error while creating new vote" }
+        })
 }
 
 async function updateVote(id, title, subjects, duration, maxCount) {
-    const updateRequest = new VoteUpdateRequest(title, subjects, duration, maxCount)
-    const jsonBody = JSON.stringify(updateRequest, null, "\t")
-    const reqHeader = new Headers()
-    reqHeader.append("Content-Type", "application/json")
-    return fetch(`https://localhost:7000/votes/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: reqHeader,
-        body: jsonBody
-    })
-        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+    return httpFetch(`${VotesUrl}/${id}`, HttpMethod.PUT,
+        new VoteUpdateRequest(title, subjects, duration, maxCount))
         .then(response => {
+            const requestResult = {}
             if (!response.isSuccess) {
-                if (response.json.message) {
-                    if (response.json.result.validationErrors) {
-                        console.log(`Failed when updating vote ${id}: ` +
-                            `${response.json.message}`, response.json.result.validationErrors)
-                    } else {
-                        console.log(`Failed when updating vote ${id}: `, response.json.message)
-                    }
-                    return null
-                }
+                requestResult.errorMessage = response.message
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                const vote = response.result
+                requestResult.result = new Vote(vote.id, vote.title, vote.subjects, vote.maximumCount, vote.expiredTime)
             }
 
-            return updateRequest
+            return requestResult
         })
-        .catch(error => console.error(`Error happened while updating vote ${id}.`, error))
+        .catch(error => {
+            console.error(`Error happened while updating vote (${id})`, error)
+            return { errorMessage: "There was an error while updating vote" }
+        })
 }
 
-async function deleteVote(id) {
-    const reqHeader = new Headers()
-    reqHeader.append("Content-Type", "application/json")
-    return fetch(`https://localhost:7000/votes/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: reqHeader,
-    })
-        .then(async response => Promise.resolve({ isSuccess: response.ok, json: await response.json() }))
+async function deleteVote(id = "") {
+    return httpFetch(`${VotesUrl}/${id}`, HttpMethod.DELETE)
         .then(response => {
+            const requestResult = {}
             if (!response.isSuccess) {
-                if (response.json.message) {
-                    console.log(`Failed when deleting vote ${id}: `, response.json.message)
-                    return null
-                }
+                requestResult.errorMessage = response.message
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                requestResult.result = id
             }
 
-            return id
+            return requestResult
         })
-        .catch(error => console.error(`Error happened while updating vote ${id}.`, error))
+        .catch(error => {
+            console.error(`Error happened while deleting vote ${id}`, error)
+            return { errorMessage: "There was an error while deleting vote" }
+        })
 }
 
 class Vote {

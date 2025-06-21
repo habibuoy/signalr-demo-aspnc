@@ -39,7 +39,6 @@ export function spawnComponent(component, props = {}, options = {}, attachElemen
             })
         }
     })
-    // console.log(component)
 
     let onDestroySubscribers = new Set()
     

@@ -4,11 +4,11 @@
         <div :class="['mv-panel', showVotes ? 'expanded' : 'collapsed']">
             <h2 class="text-2xl font-bold mb-4 text-center">Manage Votes</h2>
             <div class="flex flex-col gap-2">
-                <button @click="onClickCreateVote" type="button"
+                <button @click="onCreateVoteClicked" type="button"
                     class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
                     Create Vote
                 </button>
-                <button @click="toggleVoteList" type="button"
+                <button @click="onShowVotesClicked" type="button"
                     class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
                     {{ showVotes ? 'Hide votes' : 'Show all votes' }}
                 </button>
@@ -22,12 +22,15 @@
                 <div v-else-if="votes.length === 0" class="text-center py-8 text-gray-600">
                     No votes available
                 </div>
+                <div v-else-if="votes === null || !votes.length" class="text-center py-8 text-gray-600">
+                    Error getting vote list
+                </div>
                 <div v-else v-for="vote in votes" :key="vote.id"
-                    :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="selectVote(vote.id)">
+                    :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="onVoteItemClicked(vote.id)">
                     <div class="flex justify-between items-start">
                         <div>
                             <h3 class="text-lg font-semibold">{{ vote.title }}</h3>
-                            <button @click.stop="toggleSubjects(vote.id)" class="mv-subject-count">
+                            <button @click.stop="onVoteSubjectsClicked(vote.id)" class="mv-subject-count">
                                 {{ vote.subjects.length }} subjects
                             </button>
                         </div>
@@ -54,11 +57,11 @@
 
                     <div :class="['mv-actions', { visible: selectedVoteId === vote.id }]">
                         <div class="flex gap-2">
-                            <button @click.stop="onClickEdit(vote)"
+                            <button @click.stop="onEditClicked(vote)"
                                 class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
                                 Edit
                             </button>
-                            <button @click.stop="onClickDelete(vote)"
+                            <button @click.stop="onDeleteClicked(vote)"
                                 class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600">
                                 Delete
                             </button>
@@ -71,7 +74,7 @@
 </template>
 
 <script setup>
-import { readonly, ref } from 'vue'
+import { ref } from 'vue'
 import { spawnLoading } from './components/loading'
 import Navbar from './components/Navbar.vue'
 import { delay, calculatePercentage } from './utils'
@@ -84,13 +87,31 @@ let voteForm = null
 const showVotes = ref(false)
 const selectedVoteId = ref(null)
 const expandedSubjectsId = ref(null)
-const votes = ref([])
+const votes = ref([] | null)
 const isLoading = ref(false)
+
+function onVoteItemClicked(id) {
+    selectedVoteId.value = selectedVoteId.value === id ? null : id
+}
+
+function onVoteSubjectsClicked(id) {
+    expandedSubjectsId.value = expandedSubjectsId.value === id ? null : id
+}
+
+function formatExpiry(date) {
+    return new Date(date).toLocaleString()
+}
 
 async function fetchVotes() {
     isLoading.value = true
     try {
-        votes.value = await getVotes(25)
+        const result = await getVotes(25)
+        if (result.errorMessage) {
+            votes.value = null
+            return
+        }
+
+        votes.value = result.result
     } catch (error) {
         console.error('Failed to fetch votes:', error)
         spawnResultPopup({
@@ -102,60 +123,61 @@ async function fetchVotes() {
     }
 }
 
-function onClickCreateVote() {
-    openCreateVoteDialog()
-}
-
-function openCreateVoteDialog() {
+function onCreateVoteClicked() {
     voteForm = spawnComponent(VoteForm, {
-        formTitle: "Create a new Vote", closeOnPositive: false, onPositive: onCreateVote
+        formTitle: "Create a new Vote", 
+        closeOnPositive: false, 
+        onPositive: proceedCreateVote
     }, { zIndex: "20" })
     voteForm.onDestroy.subscribe(() => voteForm = null)
 }
 
-async function onCreateVote(d) {
-    if (!d) {
+async function proceedCreateVote(data) {
+    if (!data) {
         console.log("no data return from vote create form")
         return
     }
 
     const loading = spawnLoading({ loadingText: "Creating new vote..." }, "20")
-    const subjects = d.voteSubjects.reduce((acc, elm) => {
+    const subjects = data.voteSubjects.reduce((acc, elm) => {
         acc.push(elm.name)
         return acc
     }, [])
 
     try {
-        const vote = await createNewVote(d.voteTitle, subjects, d.voteDuration, d.voteMaxCount)
+        const createResult = await createNewVote(data.voteTitle, subjects, data.voteDuration, data.voteMaxCount)
+        const success = createResult && !createResult.errorMessage
+        let feedbackText = `Successfully created new vote ${data.voteTitle}`
+
+        if (!success) {
+            feedbackText = `Failed: ${createResult.errorMessage}`
+        }
+
+        spawnResultPopup({
+            feedbackText,
+            success
+        })
+
+        if (!success) {
+            return
+        }
 
         if (voteForm && voteForm.destroy) {
             voteForm.destroy()
         }
 
-        if (!vote) {
-            spawnResultPopup({
-                feedbackText: `Failed creating new vote ${d.voteTitle}`,
-                success: false
-            })
-            return
-        }
-
-        spawnResultPopup({
-            feedbackText: `Successfully created new vote ${d.voteTitle}`,
-            success: true
-        })
-
         if (showVotes.value) {
-            await fetchVotes() // Refresh the list
+            await fetchVotes()
         }
     } catch (error) {
-        spawnResultPopup({ feedbackText: "Failed creating vote", success: false })
+        spawnResultPopup({ feedbackText: "Error creating vote", success: false })
+        console.error("Error happened while creating vote", error)
     } finally {
         loading.destroy()
     }
 }
 
-async function toggleVoteList() {
+async function onShowVotesClicked() {
     showVotes.value = !showVotes.value
     if (showVotes.value) {
         await fetchVotes()
@@ -165,19 +187,7 @@ async function toggleVoteList() {
     }
 }
 
-function selectVote(id) {
-    selectedVoteId.value = selectedVoteId.value === id ? null : id
-}
-
-function toggleSubjects(id) {
-    expandedSubjectsId.value = expandedSubjectsId.value === id ? null : id
-}
-
-function formatExpiry(date) {
-    return new Date(date).toLocaleString()
-}
-
-function onClickEdit(vote) {
+function onEditClicked(vote) {
     voteForm = spawnComponent(VoteForm, {
         id: vote.id,
         formTitle: `Update vote ${vote.title}`,
@@ -190,12 +200,12 @@ function onClickEdit(vote) {
         maxCount: vote.maximumCount ? vote.maximumCount : 0,
         closeOnPositive: false,
         positiveText: "Confirm Edit",
-        onPositive: onEditVote
+        onPositive: proceedEditVote
     })
     voteForm.onDestroy.subscribe(() => voteForm = null)
 }
 
-async function onEditVote(data) {
+async function proceedEditVote(data) {
     if (!data) {
         console.log("no data return from vote update form")
         return
@@ -207,29 +217,33 @@ async function onEditVote(data) {
         const result = await updateVote(data.voteId, data.voteTitle,
             data.voteSubjects, data.voteDuration, data.voteMaxCount)
 
-        let resultText = "Update vote failed"
-        let success = false
+        let feedbackText = "Successfully updated vote"
+        const success = result && !result.errorMessage
 
-        if (result) {
-            resultText = "Successfully updated vote"
-            success = true
-            if (voteForm.destroy) {
-                voteForm.destroy()
-            }
+        if (!success) {
+            feedbackText = `Failed: ${result.errorMessage}`
         }
 
-        spawnResultPopup({ feedbackText: resultText, success }, "21")
-        if (success) {
-            await fetchVotes()
+        spawnResultPopup({ feedbackText, success }, "21")
+
+        if (!success) {
+            return
         }
+
+        if (voteForm && voteForm.destroy) {
+            voteForm.destroy()
+        }
+
+        await fetchVotes()
     } catch (error) {
-        spawnResultPopup({ feedbackText: "Failed updating vote", success: false })
+        console.error(`Error happened while deleting vote ${data.voteId}`, error)
+        spawnResultPopup({ feedbackText: "Error updating vote", success: false })
     } finally {
         loading.destroy()
     }
 }
 
-function onClickDelete(vote) {
+function onDeleteClicked(vote) {
     voteForm = spawnComponent(VoteForm, {
         id: vote.id,
         formTitle: `Are you sure want to DELETE this vote?`,
@@ -242,13 +256,13 @@ function onClickDelete(vote) {
         maxCount: vote.maximumCount ? vote.maximumCount : 0,
         closeOnPositive: false,
         positiveText: "Confirm",
-        onPositive: onDeleteVote,
+        onPositive: proceedDeleteVote,
         readonly: true
     })
     voteForm.onDestroy.subscribe(() => voteForm = null)
 }
 
-async function onDeleteVote(data) {
+async function proceedDeleteVote(data) {
     if (!data) {
         console.log("no data return from vote update form")
         return
@@ -259,24 +273,25 @@ async function onDeleteVote(data) {
     try {
         const result = await deleteVote(data.voteId)
 
-        let resultText = "Delete vote failed"
-        let success = false
+        const success = result && !result.errorMessage
+        let feedbackText = "Successfully deleted vote"
 
-        if (result) {
-            resultText = "Successfully deleted vote"
-            success = true
+        if (!success) {
+            feedbackText = `Failed: ${result.errorMessage}`
+        }
+
+        spawnResultPopup({ feedbackText, success }, "21")
+        
+        if (success) {
             if (voteForm.destroy) {
                 voteForm.destroy()
             }
-        }
 
-        spawnResultPopup({ feedbackText: resultText, success }, "21")
-        if (success) {
             await fetchVotes()
         }
     } catch (error) {
-        console.error("Error happened while deleting vote", error)
-        spawnResultPopup({ feedbackText: "Delete vote failed", success: false }, "21")
+        console.error(`Error happened while deleting vote ${data.voteId}`, error)
+        spawnResultPopup({ feedbackText: "Error deleting vote", success: false }, "21")
     } finally {
         loading.destroy()
     }
