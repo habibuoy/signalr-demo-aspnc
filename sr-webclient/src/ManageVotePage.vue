@@ -124,7 +124,7 @@ function onCreateVoteClicked() {
         formTitle: "Create a new Vote", 
         closeOnPositive: false, 
         onPositive: proceedCreateVote
-    }, { zIndex: "20" })
+    }, { zIndex: 20 })
     voteForm.onDestroy.subscribe(() => voteForm = null)
 }
 
@@ -134,7 +134,7 @@ async function proceedCreateVote(data) {
         return
     }
 
-    const loading = spawnLoading({ loadingText: "Creating new vote..." }, "20")
+    const loading = spawnLoading({ loadingText: "Creating new vote..." }, 20)
     const subjects = data.voteSubjects.reduce((acc, elm) => {
         acc.push(elm.name)
         return acc
@@ -210,7 +210,7 @@ async function proceedEditVote(data) {
         return
     }
 
-    const loading = spawnLoading({ loadingText: "Updating vote..." }, "20");
+    const loading = spawnLoading({ loadingText: "Updating vote..." }, 20);
 
     try {
         const result = await updateVote(data.voteId, data.voteTitle,
@@ -223,7 +223,7 @@ async function proceedEditVote(data) {
             feedbackText = `Failed: ${result.errorMessage}`
         }
 
-        spawnResultPopup({ feedbackText, success }, "21")
+        spawnResultPopup({ feedbackText, success }, 21)
 
         if (!success) {
             if (result.validationErrors) {
@@ -270,7 +270,7 @@ async function proceedDeleteVote(data) {
         return
     }
 
-    const loading = spawnLoading({ loadingText: "Deleting vote..." }, "20");
+    const loading = spawnLoading({ loadingText: "Deleting vote..." }, 20);
 
     try {
         const result = await deleteVote(data.voteId)
@@ -282,7 +282,7 @@ async function proceedDeleteVote(data) {
             feedbackText = `Failed: ${result.errorMessage}`
         }
 
-        spawnResultPopup({ feedbackText, success }, "21")
+        spawnResultPopup({ feedbackText, success }, 21)
         
         if (success) {
             if (voteForm.destroy) {

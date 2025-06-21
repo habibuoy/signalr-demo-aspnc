@@ -8,8 +8,8 @@ export function spawnComponent(component, props = {}, options = {}, attachElemen
     const element = attachElement ?? appElement
     element.appendChild(container)
 
-    if (options.zIndex !== null) {
-        container.style.zIndex = options.zIndex
+    if (options.zIndex !== null && typeof options.zIndex === 'number' ) {
+        container.style.zIndex = options.zIndex + ""
         container.style.position = 'fixed'
         container.style.top = '0'
         container.style.left = '0'
