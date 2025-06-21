@@ -9,22 +9,24 @@
                     <form id="vote-form" @submit.prevent="onPositiveClicked">
                         <div class="mb-4">
                             <label class="block mb-1 text-gray-700">Title</label>
-                            <input v-model="voteTitle" type="text" class="w-full px-3 py-2 border rounded" required />
+                            <input v-model="voteTitle" type="text" class="w-full px-3 py-2 border rounded" 
+                                required @input="validateTitle" name="title" />
                         </div>
                         <div class="mb-4">
                             <label class="block mb-1 text-gray-700">Subjects (separate with comma)</label>
                             <input v-model="voteSubjects" type="text" class="w-full px-3 py-2 border rounded"
-                                required @input="validateSubjectsInput"/>
+                                required @input="validateSubjectsInput" name="subjects"/>
                         </div>
                         <div class="mb-6">
                             <label class="block mb-1 text-gray-700">Duration (in seconds, 0 = no duration)</label>
                             <input placeholder="0" v-model="voteDuration" type="number"
-                                class="w-full px-3 py-2 border rounded" />
+                                class="w-full px-3 py-2 border rounded" @input="validateDuration" name="duration" />
                         </div>
                         <div class="mb-6">
                             <label class="block mb-1 text-gray-700">Maximum count (0 = no max)</label>
                             <input placeholder="0" v-model="voteMaxCount" type="number"
-                                class="w-full px-3 py-2 border rounded" @input="validateMaximumCountInput" @focus="validateMaximumCountInput" />
+                                class="w-full px-3 py-2 border rounded" @input="validateMaximumCountInput" 
+                                name="maximumCount" />
                         </div>
                         <div class="bg-white-50 py-3 flex justify-center gap-2">
                             <button type="button" @click="onCloseClicked" class="mt-3 inline-flex w-full justify-center rounded-md 
@@ -106,26 +108,62 @@ const voteDuration = ref(props.duration)
 const voteMaxCount = ref(props.maxCount)
 
 const voteSubjectIds = []
+const formInputs = {}
+
+const MinimumTitleLength = 3
 
 onMounted(() => {
-    if (props.subjects.length > 0) {
+    currentSubjectCount = props.subjects.length
+    if (currentSubjectCount > 0) {
         for (const subj of props.subjects) {
             voteSubjectIds.push(subj.id)
             subjects.push(subj.name)
         }
     }
 
-    if (props.readonly) {
-        const form = document.getElementById('vote-form')
-        const inputs = form.getElementsByTagName('input')
-        for (let i = 0; i < inputs.length; i++) {
-            inputs.item(i).disabled = true
-        }
+    const form = document.getElementById('vote-form')
+    const inputs = form.getElementsByTagName('input')
+    for (const input of inputs) {
+        formInputs[input.name] = input
+        input.disabled = props.readonly
     }
 })
 
 let currentSubjectCount = 0
 let subjects = []
+
+function invalidateForm(inputs = {}) {
+    for (const input in inputs) {
+        console.log(input, formInputs[input])
+        formInputs[input].setCustomValidity(String.prototype.concat(inputs[input]))
+        formInputs[input].reportValidity()
+    }
+}
+
+function validateTitle(event) {
+    const inputElement = event.target
+    const inputValue = inputElement.value
+
+    inputElement.setCustomValidity("")
+    if (inputValue.length < MinimumTitleLength) {
+        inputElement.setCustomValidity(`Title cannot be less than ${MinimumTitleLength}`)
+    }
+}
+
+function validateDuration(event) {
+    const inputElement = event.target
+    const inputValue = inputElement.value
+
+    inputElement.setCustomValidity("")
+
+    if (inputValue === 0) {
+        return
+    }
+
+    if (+inputValue < 0) {
+        inputElement.setCustomValidity("Duration cannot be less than 0")
+    }
+}
 
 function isSubjectCountValid() { 
     return +currentSubjectCount >= validMinSubjectCount 
@@ -143,6 +181,8 @@ function validateSubjectsInput(event) {
     }, [])
     currentSubjectCount = subjects.length
 
+    inputElement.setCustomValidity("")
+
     if (!isSubjectCountValid()) {
         inputElement.setCustomValidity("Please provide at least 2 subjects")
     }
@@ -150,18 +190,20 @@ function validateSubjectsInput(event) {
         && currentSubjectCount != voteSubjectIds.length) {
         inputElement.setCustomValidity(`Please provide the same amount of subjects as before (${voteSubjectIds.length})`)
     }
-    else
-    {
-        inputElement.setCustomValidity("")
-    }
 }
 
 function validateMaximumCountInput(event) {
     const inputElement = event.target
     const inputValue = inputElement.value
 
+    inputElement.setCustomValidity("")
+
     if (inputValue === 0) {
-        inputElement.setCustomValidity("")
+        return
+    }
+
+    if (inputValue < 0) {
+        inputElement.setCustomValidity("Maximum count cannot be less than 0")
         return
     }
 
@@ -172,10 +214,6 @@ function validateMaximumCountInput(event) {
 
     if (inputValue % currentSubjectCount !== 0) {
         inputElement.setCustomValidity("Please provide a valid maximum count (remainder of max count divided by subject count should be 0)")
-    }
-    else
-    {
-        inputElement.setCustomValidity("")
     }
 }
 
@@ -199,5 +237,7 @@ function onPositiveClicked() {
 function onCloseClicked() {
     emit("close")
 }
+
+defineExpose({invalidateForm})
 
 </script>

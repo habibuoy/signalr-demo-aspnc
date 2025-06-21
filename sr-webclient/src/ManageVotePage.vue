@@ -155,6 +155,9 @@ async function proceedCreateVote(data) {
         })
 
         if (!success) {
+            if (createResult.validationErrors) {
+                voteForm.instance.invalidateForm(createResult.validationErrors)
+            }
             return
         }
 
@@ -223,6 +226,9 @@ async function proceedEditVote(data) {
         spawnResultPopup({ feedbackText, success }, "21")
 
         if (!success) {
+            if (result.validationErrors) {
+                voteForm.instance.invalidateForm(result.validationErrors)
+            }
             return
         }
 
