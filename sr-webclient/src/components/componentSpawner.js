@@ -1,4 +1,4 @@
-import { createApp, h } from "vue";
+import { createApp, h, ref } from "vue";
 
 const appElement = document.querySelector("#app")
 
@@ -29,13 +29,15 @@ export function spawnComponent(component, props = {}, options = {}, attachElemen
         // console.warn(`You missed required prop ${missingRequiredProps.substring(0, missingRequiredProps.length - 2)} while spawning component ${component.__name}`)
     }
     
+    const componentRef = ref(null)
     const app = createApp({
         render() {
             return h(component, {
                 ...props,
                 onClose: () => {
                     destroy()
-                }
+                },
+                ref: componentRef
             })
         }
     })
@@ -59,6 +61,7 @@ export function spawnComponent(component, props = {}, options = {}, attachElemen
     app.mount(container)
 
     return {
+        instance: componentRef.value,
         destroy,
         onDestroy: {
             subscribe: (fn) => {
