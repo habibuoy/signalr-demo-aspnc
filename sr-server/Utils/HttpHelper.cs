@@ -13,7 +13,7 @@ public static class HttpHelper
             GenericServiceErrorCode.InvalidObject => Results.BadRequest(
                 ResponseObject.ValidationError(
                     result.Error.TryToConvertToValidationError(out var validationError)
-                        ? validationError : result.Error.Message)),
+                        ? validationError.ValidationErrors : result.Error.Message)),
             GenericServiceErrorCode.NotFound => Results.NotFound(
                 ResponseObject.Create(result.Error.Message)),
             GenericServiceErrorCode.Conflicted => Results.Conflict(
