@@ -1,4 +1,4 @@
-export { delay, calculatePercentage, httpFetch, HttpMethod }
+export { delay, calculatePercentage, httpFetch, HttpMethod, formatDateTime }
 
 async function delay(durationInMs) {
     return new Promise(resolve => setTimeout(resolve, durationInMs))
@@ -56,4 +56,8 @@ async function httpFetch(url, method = HttpMethod.GET, bodyObject = { }, headers
         .catch(error => {
             console.error(`Error happened while fetching url ${url}`, error)
         })
+}
+
+function formatDateTime(dateTimeString) {
+    return (new Date(dateTimeString)).toLocaleString()
 }

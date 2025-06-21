@@ -42,7 +42,7 @@
                                 Maximum votes: {{ vote.maximumCount }}
                             </div>
                             <div v-if="vote.expiredTime" class="text-sm text-gray-600">
-                                Close at: {{ formatExpiry(vote.expiredTime) }}
+                                Close at: {{ formatDateTime(vote.expiredTime) }}
                             </div>
                         </div>
                     </div>
@@ -77,7 +77,7 @@
 import { ref } from 'vue'
 import { spawnLoading } from './components/loading'
 import Navbar from './components/Navbar.vue'
-import { delay, calculatePercentage } from './utils'
+import { delay, calculatePercentage, formatDateTime } from './utils'
 import { spawnResultPopup } from './components/resultPopup'
 import { spawnComponent } from './components/componentSpawner'
 import VoteForm from './components/VoteForm.vue'
@@ -96,10 +96,6 @@ function onVoteItemClicked(id) {
 
 function onVoteSubjectsClicked(id) {
     expandedSubjectsId.value = expandedSubjectsId.value === id ? null : id
-}
-
-function formatExpiry(date) {
-    return new Date(date).toLocaleString()
 }
 
 async function fetchVotes() {

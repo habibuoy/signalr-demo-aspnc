@@ -25,8 +25,8 @@
                         </div>
                         <div class="text-sm text-black-500">
                             <span v-if="!vote.expiredTime">No end time</span>
-                            <span v-else-if="Date.now() < Date.parse(vote.expiredTime)">Vote ends at: {{ (new
-                                Date(vote.expiredTime).toLocaleString()) }}</span>
+                            <span v-else-if="Date.now() < Date.parse(vote.expiredTime)">Vote ends at: 
+                                {{ formatDateTime(vote.expiredTime) }}</span>
                             <span v-else>Vote ended</span>
                         </div>
                     </div>
@@ -88,7 +88,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Navbar from './components/Navbar.vue'
 import * as signalR from '@microsoft/signalr'
 import { Vote, VoteSubject, getVoteInputs, inputVote, getVotes } from './vote'
-import { delay, calculatePercentage } from './utils'
+import { delay, calculatePercentage, formatDateTime } from './utils'
 
 const votes = ref([])
 const selectedVote = ref(null)
@@ -373,8 +373,7 @@ function updateSelectedVoteRemainingTime() {
 async function onBeforeLogout() {
   if (isLoggingOut.value) return
   isLoggingOut.value = true
-  // Clean up: unsubscribe, clear interval, disconnect SignalR
-  console.log("Cleaning votes")
+  
   if (selectedVote.value) {
     await unsubscribeVote(selectedVote.value)
   }
