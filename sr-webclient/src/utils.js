@@ -1,4 +1,5 @@
-export { delay, calculatePercentage, httpFetch, HttpMethod, formatDateTime }
+export { delay, calculatePercentage, httpFetch, HttpMethod, 
+        BaseUrl, formatDateTime }
 
 async function delay(durationInMs) {
     return new Promise(resolve => setTimeout(resolve, durationInMs))
@@ -14,6 +15,7 @@ function calculatePercentage(count, total, decimalPlace = 2) {
     return (count / total * 100).toFixed(decimalPlace)
 }
 
+const BaseUrl = "https://localhost:7000"
 const httpHeaders = new Headers({ "Content-Type": "application/json" })
 
 const HttpMethod =  {

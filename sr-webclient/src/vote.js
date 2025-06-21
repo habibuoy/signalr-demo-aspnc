@@ -1,11 +1,10 @@
-import { httpFetch, HttpMethod } from './utils'
+import { httpFetch, HttpMethod, BaseUrl } from './utils'
 
 export {
     Vote, VoteSubject, VoteInput, getVoteInputs, inputVote,
     getVotes, createNewVote, updateVote, deleteVote
 }
 
-const BaseUrl = "https://localhost:7000"
 const VotesPath = "/votes"
 const InputsPath = "/inputs"
 const VotesUrl = BaseUrl + VotesPath
