@@ -10,22 +10,22 @@
                         <div class="mb-4">
                             <label class="block mb-1 text-gray-700">Title</label>
                             <input v-model="voteTitle" type="text" class="w-full px-3 py-2 border rounded" 
-                                required @input="validateTitle" name="title" />
+                                required @input="onTitleInput" name="title" />
                         </div>
                         <div class="mb-4">
                             <label class="block mb-1 text-gray-700">Subjects (separate with comma)</label>
                             <input v-model="voteSubjects" type="text" class="w-full px-3 py-2 border rounded"
-                                required @input="validateSubjectsInput" name="subjects"/>
+                                required @input="onSubjectsInput" name="subjects"/>
                         </div>
                         <div class="mb-6">
                             <label class="block mb-1 text-gray-700">Duration (in seconds, 0 = no duration)</label>
                             <input placeholder="0" v-model="voteDuration" type="number"
-                                class="w-full px-3 py-2 border rounded" @input="validateDuration" name="duration" />
+                                class="w-full px-3 py-2 border rounded" @input="onDurationInput" name="duration" />
                         </div>
                         <div class="mb-6">
                             <label class="block mb-1 text-gray-700">Maximum count (0 = no max)</label>
                             <input placeholder="0" v-model="voteMaxCount" type="number"
-                                class="w-full px-3 py-2 border rounded" @input="validateMaximumCountInput" 
+                                class="w-full px-3 py-2 border rounded" @input="onMaximumCountInput" 
                                 name="maximumCount" />
                         </div>
                         <div class="bg-white-50 py-3 flex justify-center gap-2">
@@ -134,13 +134,12 @@ let subjects = []
 
 function invalidateForm(inputs = {}) {
     for (const input in inputs) {
-        console.log(input, formInputs[input])
         formInputs[input].setCustomValidity(String.prototype.concat(inputs[input]))
         formInputs[input].reportValidity()
     }
 }
 
-function validateTitle(event) {
+function onTitleInput(event) {
     const inputElement = event.target
     const inputValue = inputElement.value
 
@@ -150,7 +149,7 @@ function validateTitle(event) {
     }
 }
 
-function validateDuration(event) {
+function onDurationInput(event) {
     const inputElement = event.target
     const inputValue = inputElement.value
 
@@ -169,7 +168,7 @@ function isSubjectCountValid() {
     return +currentSubjectCount >= validMinSubjectCount 
 }
 
-function validateSubjectsInput(event) {
+function onSubjectsInput(event) {
     const inputElement = event.target
     const inputValue = inputElement.value
     subjects = inputValue.split(",").reduce((acc, e) => {
@@ -192,7 +191,7 @@ function validateSubjectsInput(event) {
     }
 }
 
-function validateMaximumCountInput(event) {
+function onMaximumCountInput(event) {
     const inputElement = event.target
     const inputValue = inputElement.value
 
