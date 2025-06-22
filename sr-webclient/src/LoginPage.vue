@@ -46,11 +46,11 @@ async function onLoginClicked() {
             feedbackText = `Failed: ${result.errorMessage}`
         }
 
-        const popup = spawnResultPopup({ feedbackText, success })
-        popup.onDestroy.subscribe(() => router.push('/'))
+        const popup = spawnResultPopup({ feedbackText, success }, 21)
+        popup.onDestroy.subscribe(() => { if (success) router.push('/') })
     } catch (error) {
         console.error(`Error happened while logging in ${email}`, error)
-        spawnResultPopup({ feedbackText: "Error logging in", success: false })
+        spawnResultPopup({ feedbackText: "Error logging in", success: false }, 21)
     } finally {
         loading.destroy()
     }
