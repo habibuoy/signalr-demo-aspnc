@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SignalRDemo.Server.Configurations;
 using SignalRDemo.Server.Datas;
 using SignalRDemo.Server.Interfaces;
 using SignalRDemo.Server.Models;
@@ -11,13 +13,16 @@ public class DbVoteService : IVoteService, IVoteQueueService
     private readonly ApplicationDbContext dbContext;
     private readonly IVoteQueueWriter queueWriter;
     private readonly ILogger<DbVoteService> logger;
+    private readonly IOptions<VoteQueryFilterOptions> filterOptions;
 
     public DbVoteService(ApplicationDbContext dbContext,
         IVoteQueueWriter queueWriter,
+        IOptions<VoteQueryFilterOptions> filterOptions,
         ILogger<DbVoteService> logger)
     {
         this.dbContext = dbContext;
         this.queueWriter = queueWriter;
+        this.filterOptions = filterOptions;
         this.logger = logger;
     }
 
@@ -80,51 +85,40 @@ public class DbVoteService : IVoteService, IVoteQueueService
     public async Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
         string? sortBy = null,
         string? sortOrder = null,
-        Func<Vote, bool>? predicate = null)
+        string? search = null)
     {
-        var votes = dbContext.Votes.AsQueryable();
+        var votes = dbContext.Votes
+            .Include(v => v.Subjects)
+            .ThenInclude(vs => vs.Voters)
+            .AsSplitQuery();
 
-        if (predicate != null)
+        if (search != null)
         {
-            votes = votes.Where(predicate).AsQueryable();
+            votes = votes
+                .Include(v => v.User)
+                .Where(v => v.Title.Contains(search) || v.User!.Email.Contains(search));
         }
 
-        bool sortDesc = sortOrder != null && sortOrder == "desc";
-
-        if (!string.IsNullOrEmpty(sortBy))
+        if (sortBy == null
+            || !filterOptions.Value.SorterExpressions.TryGetValue(sortBy!, out var expression))
         {
-            if (sortBy == "cdt")
-            {
-                if (sortDesc)
-                {
-                    votes = votes.OrderByDescending(v => v.CreatedTime);
-                }
-                else
-                {
-                    votes = votes.OrderBy(v => v.CreatedTime);
-                }
-            }
+            expression = filterOptions.Value.DefaultSorterExpression;
+        }
+
+        sortOrder ??= filterOptions.Value.DefaultSortOrderOption.Value;
+        if (sortOrder == QuerySortOrderOptions.Ascending.Value)
+        {
+            votes = votes.OrderBy(expression);
         }
         else
         {
-            if (sortDesc)
-            {
-                votes = votes.OrderByDescending(v => v.CreatedTime);
-            }
-            else
-            {
-                votes = votes.OrderBy(v => v.CreatedTime);
-            }
+            votes = votes.OrderByDescending(expression);
         }
 
-        votes = votes.Take(count == null ? 10 : count!.Value);
+        votes = votes.Take(count!.Value);
+        var result = await votes.ToListAsync();
 
-        votes = votes
-            .Include(v => v.Subjects)
-            .ThenInclude(s => s.Voters)
-            .AsSplitQuery();
-
-        return await votes.ToListAsync();
+        return result;
     }
 
     public async Task<IEnumerable<VoteSubjectInput>> GetVoteInputsByUserIdAsync(string userId)

@@ -1,10 +1,47 @@
+using System.Linq.Expressions;
 using SignalRDemo.Server.Interfaces;
+using SignalRDemo.Server.Models;
 using SignalRDemo.Server.Services;
+using static SignalRDemo.Server.Configurations.AppConstants;
 
 namespace SignalRDemo.Server.Configurations;
 
 public static class DomainConfigurations
 {
+    private const string VoteTitleFilterOptionKey = "ttl";
+    private const string VoteCreatedTimeFilterOptionKey = "cdt";
+    private const string VoteMaximumCountFilterOptionsKey = "mxc";
+    private const string VoteExpiredTimeFilterOptionKey = "exp";
+    private const string VoteCreatorFilterOptionKey = "ctr";
+
+    private static readonly Dictionary<string, Expression<Func<Vote, object>>> VoteSorterExpressions = new()
+    {
+        { VoteTitleFilterOptionKey, vote => vote.Title },
+        { VoteCreatedTimeFilterOptionKey, vote => vote.CreatedTime },
+        { VoteMaximumCountFilterOptionsKey, vote => vote.MaximumCount! },
+        { VoteExpiredTimeFilterOptionKey, vote => vote.ExpiredTime! },
+    };
+
+    private static readonly Dictionary<string, object> VoteFilterSortByOptions = new()
+    {
+        { VoteTitleFilterOptionKey, new { NormalizedName = "Title" } },
+        { VoteCreatedTimeFilterOptionKey, new { NormalizedName = "Created Time" } },
+        { VoteMaximumCountFilterOptionsKey, new { NormalizedName = "Maximum Count" } },
+        { VoteExpiredTimeFilterOptionKey, new { NormalizedName = "Expired Time" } },
+    };
+
+    private static readonly Dictionary<string, object> VoteFilterSearchOptions = new()
+    {
+        { VoteTitleFilterOptionKey, new { NormalizedName = "Title" } },
+        { VoteCreatorFilterOptionKey, new { NormalizedName = "Creator" } },
+    };
+
+    private static readonly Dictionary<string, object> FilterSortOrderOptions = new()
+    {
+        { SortOrderAscendingOptionsKey, new { NormalizedName = "Ascending" } },
+        { SortOrderDescendingOptionsKey, new { NormalizedName = "Descending" } },
+    };
+
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
         services.AddScoped<IUserService, UserService>();
@@ -24,6 +61,21 @@ public static class DomainConfigurations
 
         services.AddHostedService<VoteQueueProcessorBackgroundService>();
         services.AddHostedService<VoteBroadcasterBackgroundService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddOptionServices(this IServiceCollection services)
+    {
+        services.Configure<VoteQueryFilterOptions>(configure =>
+        {
+            configure.SorterExpressions = VoteSorterExpressions;
+            configure.DefaultSorterExpression = VoteSorterExpressions[VoteCreatedTimeFilterOptionKey];
+            configure.DefaultSortOrderOption = QuerySortOrderOptions.Descending;
+            configure.SortBy = VoteFilterSortByOptions;
+            configure.SortOrder = FilterSortOrderOptions;
+            configure.Search = VoteFilterSearchOptions;
+        });
 
         return services;
     }

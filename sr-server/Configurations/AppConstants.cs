@@ -17,4 +17,9 @@ public static class AppConstants
     // Validations
     public const int UserPasswordMinimumLength = 8;
     public const int RoleNameMinimumLength = 3;
+
+    
+    // Domains
+    public const string SortOrderAscendingOptionsKey = "asc";
+    public const string SortOrderDescendingOptionsKey = "desc";
 }

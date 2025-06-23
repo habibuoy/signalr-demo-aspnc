@@ -10,6 +10,8 @@ using SignalRDemo.Server.Validations;
 using static SignalRDemo.Server.Configurations.AppConstants;
 using static SignalRDemo.Server.Utils.LogHelper;
 using static SignalRDemo.Server.Utils.HttpHelper;
+using Microsoft.Extensions.Options;
+using SignalRDemo.Server.Configurations;
 
 namespace SignalRDemo.Server.Endpoints.Handlers;
 
@@ -21,6 +23,7 @@ public static class VoteHandlers
 
         routes.MapGet("/", GetMany);
         routes.MapGet("/{id}", Get);
+        routes.MapGet("/filter-options", GetFilter);
         routes.MapPost("/inputs", Input);
         routes.MapPost("/inputs/queue", InputQueue);
 
@@ -49,7 +52,7 @@ public static class VoteHandlers
         }
 
         var votes = await voteService.GetVotesAsync(request.Count,
-            request.SortBy, request.SortOrder);
+            request.SortBy, request.SortOrder, request.Search);
 
         votes ??= [];
 
@@ -72,6 +75,16 @@ public static class VoteHandlers
         }
 
         return Results.Ok(ResponseObject.Success(vote.ToResponse()));
+    }
+
+    public static IResult GetFilter([FromServices] IOptions<VoteQueryFilterOptions> filterOptions)
+    {
+        return Results.Ok(ResponseObject.Success(new
+        {
+            filterOptions.Value.SortBy,
+            filterOptions.Value.SortOrder,
+            filterOptions.Value.Search,
+        }));
     }
 
     public static async Task<IResult> GetUserVoteInputs(string? user,

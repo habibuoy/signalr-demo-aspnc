@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDataServices(builder.Configuration, builder.Environment);
 builder.Services.AddGeneralServices();
 builder.Services.AddDomainServices();
+builder.Services.AddOptionServices();
 builder.Services.AddSecurityServices();
 
 var app = builder.Build();

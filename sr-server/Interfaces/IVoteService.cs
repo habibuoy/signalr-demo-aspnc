@@ -10,7 +10,7 @@ public interface IVoteService
     Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
         string? sortBy = null,
         string? sortOrder = null,
-        Func<Vote, bool>? predicate = null);
+        string? search = null);
     Task<IEnumerable<VoteSubjectInput>> GetVoteInputsByUserIdAsync(string userId);
     Task<IEnumerable<VoteSubjectInput>?> GetVoteInputsByVoteIdAsync(string voteId);
     Task<ServiceResult<Vote>> CreateVoteAsync(Vote vote);
