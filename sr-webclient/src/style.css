@@ -53,7 +53,6 @@
   @apply bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shrink-0;
 }
 
-/* Manage vote styles */
 .mv-container {
   @apply fixed inset-0 flex flex-col items-center bg-gray-100 transition-all duration-300;
   padding-top: var(--navbar-height, 4rem);
@@ -134,4 +133,48 @@
   @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
          bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer 
          transition-colors mt-2;
+}
+
+.mv-filter-panel {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  transition: max-height 0.3s;
+}
+
+.mv-filter-content {
+  overflow: hidden;
+  transition: max-height 0.3s;
+  padding: 0.5rem 0;
+}
+
+.mv-filter-panel .mv-filter-content label {
+  color: #374151;
+}
+
+@media (max-width: 768px) {
+  .mv-item > .flex.md\:flex-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+  .mv-item .md\:items-end {
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+}
+
+.mv-item .vote-creator {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }

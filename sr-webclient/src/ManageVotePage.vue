@@ -14,6 +14,39 @@
                 </button>
             </div>
 
+            <transition name="fade">
+                <div v-if="showVotes && filterOptions" class="mv-filter-panel" :class="{ expanded: filterPanelExpanded }">
+                    <button @click="filterPanelExpanded = !filterPanelExpanded" class="w-full text-left font-semibold py-2 px-2 bg-gray-100 rounded mb-2 flex items-center justify-between">
+                        Filter
+                        <span :class="filterPanelExpanded ? '' : 'rotate-90'" class="transition-transform">▼</span>
+                    </button>
+                    <div v-show="filterPanelExpanded" class="mv-filter-content flex flex-col md:flex-row gap-2 md:items-end">
+                        <div class="flex flex-col" v-show="filterOptions.sortBy">
+                            <label class="text-xs font-medium mb-1">Sort By</label>
+                            <select name="sort-by" v-model="filterOptions.sortBy.value" class="border rounded px-2 py-1">
+                                <option value="" disabled>Select sort by</option>
+                                <option v-for="item in filterOptions.sortBy.options" :key="item.name" 
+                                    :value="item.name" >{{ item.normalizedName }} </option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col" v-show="filterOptions.sortOrder">
+                            <label class="text-xs font-medium mb-1">Order</label>
+                            <select v-model="filterOptions.sortOrder.value" class="border rounded px-2 py-1">
+                                <option value="" disabled>Select sort order</option>
+                                <option v-for="item in filterOptions.sortOrder.options" :key="item.name" 
+                                    :value="item.name">{{ item.normalizedName }}</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col flex-1" v-show="filterOptions.search">
+                            <label class="text-xs font-medium mb-1">Search</label>
+                            <input v-model="filterOptions.search.value" type="text" class="border rounded px-2 py-1 w-full" 
+                                :placeholder="`Search vote by ${filterOptions.search.options.map(o => o.normalizedName).join(', ')}...`" />
+                        </div>
+                        <button @click="onApplyFilterClicked" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2 md:mt-0">Apply Filter</button>
+                    </div>
+                </div>
+            </transition>
+
             <div v-if="showVotes" class="mv-list">
                 <div v-if="isLoading" class="flex items-center justify-center py-8">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
@@ -27,23 +60,18 @@
                 </div>
                 <div v-else v-for="vote in votes" :key="vote.id"
                     :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="onVoteItemClicked(vote.id)">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-lg font-semibold">{{ vote.title }}</h3>
-                            <button @click.stop="onVoteSubjectsClicked(vote.id)" class="mv-subject-count">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2">
+                        <div class="flex flex-col gap-1">
+                            <h3 class="text-lg font-semibold whitespace-normal">{{ vote.title }}</h3>
+                            <button @click.stop="onVoteSubjectsClicked(vote.id)" class="mv-subject-count w-max self-start">
                                 {{ vote.subjects.length }} subjects
                             </button>
                         </div>
-                        <div class="text-right">
-                            <div class="text-sm text-gray-600">
-                                Total votes: {{ vote.totalCount }}
-                            </div>
-                            <div v-if="vote.maximumCount" class="text-sm text-gray-600">
-                                Maximum votes: {{ vote.maximumCount }}
-                            </div>
-                            <div v-if="vote.expiredTime" class="text-sm text-gray-600">
-                                Close at: {{ formatDateTime(vote.expiredTime) }}
-                            </div>
+                        <div class="flex flex-col md:items-end gap-1 text-right">
+                            <div class="text-xs text-gray-500">Created by: <span class="font-medium">{{ vote.creator }}</span></div>
+                            <div class="text-sm text-gray-600">Total votes: {{ vote.totalCount }}</div>
+                            <div v-if="vote.maximumCount" class="text-sm text-gray-600">Maximum votes: {{ vote.maximumCount }}</div>
+                            <div v-if="vote.expiredTime" class="text-sm text-gray-600">Close at: {{ formatDateTime(vote.expiredTime) }}</div>
                         </div>
                     </div>
 
@@ -81,7 +109,7 @@ import { delay, calculatePercentage, formatDateTime } from './utils'
 import { spawnResultPopup } from './components/resultPopup'
 import { spawnComponent } from './components/componentSpawner'
 import VoteForm from './components/VoteForm.vue'
-import { createNewVote, getVotes, updateVote, deleteVote } from './vote'
+import { createNewVote, getVotes, updateVote, deleteVote, getFilterOptions } from './vote'
 
 let voteForm = null
 const showVotes = ref(false)
@@ -89,6 +117,8 @@ const selectedVoteId = ref(null)
 const expandedSubjectsId = ref(null)
 const votes = ref([] | null)
 const isLoading = ref(false)
+const filterPanelExpanded = ref(false)
+const filterOptions = ref(null)
 
 function onVoteItemClicked(id) {
     selectedVoteId.value = selectedVoteId.value === id ? null : id
@@ -101,7 +131,11 @@ function onVoteSubjectsClicked(id) {
 async function fetchVotes() {
     isLoading.value = true
     try {
-        const result = await getVotes(25)
+        const result = await getVotes(25,
+            filterOptions.value.sortBy.value,
+            filterOptions.value.sortOrder.value,
+            filterOptions.value.search.value,
+        )
         if (result.errorMessage) {
             votes.value = null
             return
@@ -179,6 +213,18 @@ async function proceedCreateVote(data) {
 async function onShowVotesClicked() {
     showVotes.value = !showVotes.value
     if (showVotes.value) {
+        const filterOptionsResult = await getFilterOptions()
+        filterOptions.value = Object.entries(filterOptionsResult.result).reduce((acc, elm) => {
+            let value = ""
+            const options = Object.entries(elm[1])
+            console.log(options)
+            if (elm[0] !== "search") {
+                value = options[0][0]
+            }
+            acc[elm[0]] = { options: options.map(o => { return { name: o[0], normalizedName: o[1].normalizedName } }), value }
+            return acc
+        }, {})
+        console.log(filterOptions.value)
         await fetchVotes()
     } else {
         selectedVoteId.value = null
@@ -297,5 +343,9 @@ async function proceedDeleteVote(data) {
     } finally {
         loading.destroy()
     }
+}
+
+async function onApplyFilterClicked() {
+    await fetchVotes()
 }
 </script>

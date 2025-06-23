@@ -2,13 +2,16 @@ import { httpFetch, HttpMethod, BaseUrl } from './utils'
 
 export {
     Vote, VoteSubject, VoteInput, getVoteInputs, inputVote,
-    getVotes, createNewVote, updateVote, deleteVote
+    getVotes, createNewVote, updateVote, deleteVote,
+    getFilterOptions
 }
 
 const VotesPath = "/votes"
 const InputsPath = "/inputs"
+const FilterOptionsPath = "/filter-options"
 const VotesUrl = BaseUrl + VotesPath
 const VoteInputUrl = VotesUrl + InputsPath
+const FilterOptionsUrl = VotesUrl + FilterOptionsPath
 const UserVoteInputs = BaseUrl + "/users/vote-inputs"
 
 const VotesQueryParam = {
@@ -16,11 +19,17 @@ const VotesQueryParam = {
     SORTBY: "sortBy",
     SORTORDER: "sortOrder",
     VOTEID: "voteId",
-    SUBJECTID: "subjectId"
+    SUBJECTID: "subjectId",
+    SEARCH: "search"
 }
 
-async function getVotes(count = 10, sortOrder = "desc", sortBy = "cdt") {
-    return httpFetch(`${VotesUrl}?${VotesQueryParam.COUNT}=${count}&${VotesQueryParam.SORTBY}=${sortBy}&${VotesQueryParam.SORTORDER}=${sortOrder}`)
+async function getVotes(count = 10, sortBy, sortOrder, search ) {
+    const url = `${VotesUrl}?${VotesQueryParam.COUNT}=${count}&` +
+        `${sortBy !== undefined ? `${VotesQueryParam.SORTBY}=${sortBy}&` : ''}`+
+        `${sortOrder !== undefined ? `${VotesQueryParam.SORTORDER}=${sortOrder}&` : ''}`+
+        `${search !== undefined ? `${VotesQueryParam.SEARCH}=${search}` : ' '}`
+
+    return httpFetch(url)
         .then(response => {
             const requestResult = {}
             if (!response.isSuccess) {
@@ -42,6 +51,29 @@ async function getVotes(count = 10, sortOrder = "desc", sortBy = "cdt") {
                     v.totalCount = vote.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
                     return v
                 })
+            }
+
+            return requestResult
+        })
+        .catch(error => {
+            console.error("Error happened while fetching votes vote", error)
+            return { errorMessage: "There was an error getting vote list" }
+        })
+}
+
+async function getFilterOptions() {
+    return httpFetch(FilterOptionsUrl)
+        .then(response => {
+            const requestResult = {}
+            if (!response.isSuccess) {
+                requestResult.errorMessage = response.statusCode
+                requestResult.validationErrors = response.validationErrors
+            } else {
+                requestResult.result = {
+                    sortBy: response.result.sortBy,
+                    sortOrder: response.result.sortOrder,
+                    search: response.result.search
+                }
             }
 
             return requestResult
@@ -199,17 +231,17 @@ class VoteInput {
 class VoteCreate {
     constructor(title, subjects, duration = 0, maxCount = 0) {
         this.title = title,
-        this.subjects = subjects,
-        this.duration = duration > 0 ? duration : null,
-        this.maximumCount = maxCount > 0 ? maxCount : null
+            this.subjects = subjects,
+            this.duration = duration > 0 ? duration : null,
+            this.maximumCount = maxCount > 0 ? maxCount : null
     }
 }
 
 class VoteUpdateRequest {
     constructor(title, subjects, duration, maxCount) {
         this.title = title,
-        this.subjects = subjects,
-        this.duration = duration > 0 ? duration : null,
-        this.maximumCount = maxCount > 0 ? maxCount : null
+            this.subjects = subjects,
+            this.duration = duration > 0 ? duration : null,
+            this.maximumCount = maxCount > 0 ? maxCount : null
     }
 }
