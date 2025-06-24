@@ -1,3 +1,3 @@
 namespace SignalRDemo.Server.Endpoints.Requests;
 
-public record VotesQueryRequest(int? Count, string? SortBy, string? SortOrder, string? Search);
+public record VotesQueryRequest(int? Page, int? Count, string? SortBy, string? SortOrder, string? Search);

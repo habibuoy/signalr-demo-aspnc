@@ -82,7 +82,8 @@ public class DbVoteService : IVoteService, IVoteQueueService
         return vote;
     }
 
-    public async Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
+    public async Task<IEnumerable<Vote>> GetVotesAsync(int? page = 0,
+        int? count = 10,
         string? sortBy = null,
         string? sortOrder = null,
         string? search = null)
@@ -115,6 +116,7 @@ public class DbVoteService : IVoteService, IVoteQueueService
             votes = votes.OrderByDescending(expression);
         }
 
+        votes = votes.Skip(page!.Value * count!.Value);
         votes = votes.Take(count!.Value);
         var result = await votes.ToListAsync();
 

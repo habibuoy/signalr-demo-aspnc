@@ -7,7 +7,8 @@ namespace SignalRDemo.Server.Interfaces;
 public interface IVoteService
 {
     Task<Vote?> GetVoteByIdAsync(string id);
-    Task<IEnumerable<Vote>> GetVotesAsync(int? count = 10,
+    Task<IEnumerable<Vote>> GetVotesAsync(int? page = 0,
+        int? count = 10,
         string? sortBy = null,
         string? sortOrder = null,
         string? search = null);

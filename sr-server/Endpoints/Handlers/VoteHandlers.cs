@@ -51,7 +51,7 @@ public static class VoteHandlers
             return Results.BadRequest(ResponseObject.BadQuery());
         }
 
-        var votes = await voteService.GetVotesAsync(request.Count,
+        var votes = await voteService.GetVotesAsync(request.Page, request.Count,
             request.SortBy, request.SortOrder, request.Search);
 
         votes ??= [];
