@@ -83,7 +83,8 @@
   border-top: 1px solid #e5e7eb;
   max-height: calc(100vh - 16rem);
   overflow-y: auto;
-  padding-top: 1rem;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
 }
 
 .mv-item {

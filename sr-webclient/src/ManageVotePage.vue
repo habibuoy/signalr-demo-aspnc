@@ -15,63 +15,75 @@
             </div>
 
             <transition name="fade">
-                <div v-if="showVotes && filterOptions" class="mv-filter-panel" :class="{ expanded: filterPanelExpanded }">
-                    <button @click="filterPanelExpanded = !filterPanelExpanded" class="w-full text-left font-semibold py-2 px-2 bg-gray-100 rounded mb-2 flex items-center justify-between">
+                <div v-if="showVotes && filterOptions" class="mv-filter-panel"
+                    :class="{ expanded: filterPanelExpanded }">
+                    <button @click="onFilterClicked"
+                        class="w-full text-left font-semibold py-2 px-2 bg-gray-100 rounded mb-2 flex items-center justify-between">
                         Filter
                         <span :class="filterPanelExpanded ? '' : 'rotate-90'" class="transition-transform">▼</span>
                     </button>
-                    <div v-show="filterPanelExpanded" class="mv-filter-content flex flex-col md:flex-row gap-2 md:items-end">
+                    <div v-show="filterPanelExpanded"
+                        class="mv-filter-content flex flex-col md:flex-row gap-2 md:items-end">
                         <div class="flex flex-col" v-show="filterOptions.sortBy">
                             <label class="text-xs font-medium mb-1">Sort By</label>
-                            <select name="sort-by" v-model="filterOptions.sortBy.value" class="border rounded px-2 py-1">
+                            <select name="sort-by" v-model="filterOptions.sortBy.value"
+                                class="border rounded px-2 py-1">
                                 <option value="" disabled>Select sort by</option>
-                                <option v-for="item in filterOptions.sortBy.options" :key="item.name" 
-                                    :value="item.name" >{{ item.normalizedName }} </option>
+                                <option v-for="item in filterOptions.sortBy.options" :key="item.name"
+                                    :value="item.name">{{ item.normalizedName }} </option>
                             </select>
                         </div>
                         <div class="flex flex-col" v-show="filterOptions.sortOrder">
                             <label class="text-xs font-medium mb-1">Order</label>
                             <select v-model="filterOptions.sortOrder.value" class="border rounded px-2 py-1">
                                 <option value="" disabled>Select sort order</option>
-                                <option v-for="item in filterOptions.sortOrder.options" :key="item.name" 
+                                <option v-for="item in filterOptions.sortOrder.options" :key="item.name"
                                     :value="item.name">{{ item.normalizedName }}</option>
                             </select>
                         </div>
                         <div class="flex flex-col flex-1" v-show="filterOptions.search">
                             <label class="text-xs font-medium mb-1">Search</label>
-                            <input v-model="filterOptions.search.value" type="text" class="border rounded px-2 py-1 w-full" 
+                            <input v-model="filterOptions.search.value" type="text"
+                                class="border rounded px-2 py-1 w-full"
                                 :placeholder="`Search vote by ${filterOptions.search.options.map(o => o.normalizedName).join(', ')}...`" />
                         </div>
-                        <button @click="onApplyFilterClicked" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2 md:mt-0">Apply Filter</button>
+                        <button @click="onApplyFilterClicked"
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2 md:mt-0">Apply
+                            Filter</button>
                     </div>
                 </div>
             </transition>
 
             <div v-if="showVotes" class="mv-list">
-                <div v-if="isLoading" class="flex items-center justify-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-                    <span class="text-gray-600">Loading votes...</span>
-                </div>
-                <div v-else-if="votes.length === 0" class="text-center py-8 text-gray-600">
+                <div v-if="votes.length === 0" class="text-center py-8 text-gray-600">
                     No votes available
                 </div>
                 <div v-else-if="votes === null || !votes.length" class="text-center py-8 text-gray-600">
                     Error getting vote list
                 </div>
-                <div v-else v-for="vote in votes" :key="vote.id"
+                <div v-for="vote, index in votes" :key="vote.id"
                     :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="onVoteItemClicked(vote.id)">
                     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2">
-                        <div class="flex flex-col gap-1">
-                            <h3 class="text-lg font-semibold whitespace-normal">{{ vote.title }}</h3>
-                            <button @click.stop="onVoteSubjectsClicked(vote.id)" class="mv-subject-count w-max self-start">
-                                {{ vote.subjects.length }} subjects
-                            </button>
+                        <div class="flex flex-col">
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <h3 class="text-lg font-bold">{{ index + 1 }} |</h3>
+                                <div class="flex flex-col gap-1">
+                                    <h3 class="text-lg font-semibold whitespace-normal">{{ vote.title }}</h3>
+                                    <button @click.stop="onVoteSubjectsClicked(vote.id)"
+                                        class="mv-subject-count w-max self-start">
+                                        {{ vote.subjects.length }} subjects
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="flex flex-col md:items-end gap-1 text-right">
-                            <div class="text-xs text-gray-500">Created by: <span class="font-medium">{{ vote.creator }}</span></div>
+                            <div class="text-xs text-gray-500">Created by: <span class="font-medium">{{ vote.creator
+                                    }}</span></div>
                             <div class="text-sm text-gray-600">Total votes: {{ vote.totalCount }}</div>
-                            <div v-if="vote.maximumCount" class="text-sm text-gray-600">Maximum votes: {{ vote.maximumCount }}</div>
-                            <div v-if="vote.expiredTime" class="text-sm text-gray-600">Close at: {{ formatDateTime(vote.expiredTime) }}</div>
+                            <div v-if="vote.maximumCount" class="text-sm text-gray-600">Maximum votes: {{
+                                vote.maximumCount }}</div>
+                            <div v-if="vote.expiredTime" class="text-sm text-gray-600">Close at: {{
+                                formatDateTime(vote.expiredTime) }}</div>
                         </div>
                     </div>
 
@@ -96,6 +108,16 @@
                         </div>
                     </div>
                 </div>
+                <div v-if="isLoading" class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                    <span class="text-gray-600">Loading votes...</span>
+                </div>
+                <div v-else class="flex flex-col" style="padding-left: 0.5rem; padding-right: 0.5rem;">
+                    <button class="text-center font-semibold py-2 bg-gray-100 rounded mb-2 hover:bg-gray-200"
+                        @click="onLoadMoreClicked">
+                        Load More
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -111,14 +133,23 @@ import { spawnComponent } from './components/componentSpawner'
 import VoteForm from './components/VoteForm.vue'
 import { createNewVote, getVotes, updateVote, deleteVote, getFilterOptions } from './vote'
 
-let voteForm = null
+const VotePerPageCount = 10
+
 const showVotes = ref(false)
 const selectedVoteId = ref(null)
 const expandedSubjectsId = ref(null)
-const votes = ref([] | null)
+const votes = ref([])
 const isLoading = ref(false)
 const filterPanelExpanded = ref(false)
 const filterOptions = ref(null)
+
+const lastFilterOptionsValues = {
+    sortBy: null,
+    sortOrder: null
+}
+
+let voteForm = null
+let currentPage = 0
 
 function onVoteItemClicked(id) {
     selectedVoteId.value = selectedVoteId.value === id ? null : id
@@ -128,26 +159,39 @@ function onVoteSubjectsClicked(id) {
     expandedSubjectsId.value = expandedSubjectsId.value === id ? null : id
 }
 
-async function fetchVotes() {
+async function refreshWithPageCount() {
+    const result = await fetchVotes(0, currentPage > 0 ? (currentPage + 1) * VotePerPageCount : VotePerPageCount)
+    if (result) {
+        votes.value = result
+        return
+    }
+
+    if (currentPage === 0) {
+        votes.value = null
+    }
+}
+
+async function fetchVotes(page = 0, count = VotePerPageCount) {
     isLoading.value = true
     try {
-        const result = await getVotes(25,
+        const result = await getVotes(page,
+            count,
             filterOptions.value.sortBy.value,
             filterOptions.value.sortOrder.value,
             filterOptions.value.search.value,
         )
         if (result.errorMessage) {
-            votes.value = null
-            return
+            return null
         }
 
-        votes.value = result.result
+        return result.result
     } catch (error) {
         console.error('Failed to fetch votes:', error)
         spawnResultPopup({
             feedbackText: 'Failed to load votes',
             success: false
         })
+        return null
     } finally {
         isLoading.value = false
     }
@@ -155,8 +199,8 @@ async function fetchVotes() {
 
 function onCreateVoteClicked() {
     voteForm = spawnComponent(VoteForm, {
-        formTitle: "Create a new Vote", 
-        closeOnPositive: false, 
+        formTitle: "Create a new Vote",
+        closeOnPositive: false,
         onPositive: proceedCreateVote
     }, { zIndex: 20 })
     voteForm.onDestroy.subscribe(() => voteForm = null)
@@ -200,7 +244,7 @@ async function proceedCreateVote(data) {
         }
 
         if (showVotes.value) {
-            await fetchVotes()
+            await refreshWithPageCount()
         }
     } catch (error) {
         spawnResultPopup({ feedbackText: "Error creating vote", success: false })
@@ -212,20 +256,31 @@ async function proceedCreateVote(data) {
 
 async function onShowVotesClicked() {
     showVotes.value = !showVotes.value
+
     if (showVotes.value) {
         const filterOptionsResult = await getFilterOptions()
+        const existingOptions = Object.entries(lastFilterOptionsValues)
+
         filterOptions.value = Object.entries(filterOptionsResult.result).reduce((acc, elm) => {
-            let value = ""
+            const value = ref("")
             const options = Object.entries(elm[1])
-            console.log(options)
-            if (elm[0] !== "search") {
-                value = options[0][0]
+            const currentKey = elm[0]
+            const existingOption = existingOptions.find(([key]) => key === currentKey)
+
+            if (currentKey !== "search") {
+                if (existingOption && !existingOption[1]) {
+                    value.value = options[0][0]
+                } else {
+                    value.value = existingOption[1]
+                }
             }
+
             acc[elm[0]] = { options: options.map(o => { return { name: o[0], normalizedName: o[1].normalizedName } }), value }
             return acc
         }, {})
-        console.log(filterOptions.value)
-        await fetchVotes()
+
+        const result = await fetchVotes()
+        votes.value = result ? result : null
     } else {
         selectedVoteId.value = null
         expandedSubjectsId.value = null
@@ -282,7 +337,10 @@ async function proceedEditVote(data) {
             voteForm.destroy()
         }
 
-        await fetchVotes()
+        const updatedVoteIndex = votes.value.findIndex(v => v.id === result.result.id)
+        if (updatedVoteIndex !== -1) {
+            votes.value[updatedVoteIndex] = result.result
+        }
     } catch (error) {
         console.error(`Error happened while deleting vote ${data.voteId}`, error)
         spawnResultPopup({ feedbackText: "Error updating vote", success: false })
@@ -329,13 +387,18 @@ async function proceedDeleteVote(data) {
         }
 
         spawnResultPopup({ feedbackText, success }, 21)
-        
-        if (success) {
-            if (voteForm.destroy) {
-                voteForm.destroy()
-            }
 
-            await fetchVotes()
+        if (!success) {
+            return
+        }
+
+        if (voteForm.destroy) {
+            voteForm.destroy()
+        }
+
+        const deletedVoteIndex = votes.value.findIndex(v => v.id === result.result)
+        if (deletedVoteIndex !== -1) {
+            votes.value.splice(deletedVoteIndex, 1)
         }
     } catch (error) {
         console.error(`Error happened while deleting vote ${data.voteId}`, error)
@@ -345,7 +408,30 @@ async function proceedDeleteVote(data) {
     }
 }
 
-async function onApplyFilterClicked() {
-    await fetchVotes()
+function onFilterClicked() {
+    filterPanelExpanded.value = !filterPanelExpanded.value
 }
+
+async function onApplyFilterClicked() {
+    await refreshWithPageCount()
+    lastFilterOptionsValues.sortBy = filterOptions.value.sortBy.value
+    lastFilterOptionsValues.sortOrder = filterOptions.value.sortOrder.value
+}
+
+async function onLoadMoreClicked() {
+    currentPage++
+    const result = await fetchVotes(currentPage)
+    if (result) {
+        result.forEach((vote) => {
+            const existingIndex = votes.value.findIndex((v) => v.id === vote.id)
+            if (existingIndex !== -1) {
+                votes.value[existingIndex] = vote
+                return
+            }
+    
+            votes.value.push(vote)
+        })
+    }
+}
+
 </script>

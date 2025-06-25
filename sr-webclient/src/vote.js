@@ -15,6 +15,7 @@ const FilterOptionsUrl = VotesUrl + FilterOptionsPath
 const UserVoteInputs = BaseUrl + "/users/vote-inputs"
 
 const VotesQueryParam = {
+    PAGE: "page",
     COUNT: "count",
     SORTBY: "sortBy",
     SORTORDER: "sortOrder",
@@ -23,8 +24,10 @@ const VotesQueryParam = {
     SEARCH: "search"
 }
 
-async function getVotes(count = 10, sortBy, sortOrder, search ) {
-    const url = `${VotesUrl}?${VotesQueryParam.COUNT}=${count}&` +
+async function getVotes(page = 0, count = 10, sortBy, sortOrder, search ) {
+    const url = `${VotesUrl}?` +
+        `${VotesQueryParam.PAGE}=${page}&` +
+        `${VotesQueryParam.COUNT}=${count}&` +
         `${sortBy !== undefined ? `${VotesQueryParam.SORTBY}=${sortBy}&` : ''}`+
         `${sortOrder !== undefined ? `${VotesQueryParam.SORTORDER}=${sortOrder}&` : ''}`+
         `${search !== undefined ? `${VotesQueryParam.SEARCH}=${search}` : ' '}`
