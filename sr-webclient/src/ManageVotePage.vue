@@ -67,47 +67,47 @@
                 <div v-else-if="votes === null || !votes.length" class="text-center py-8 text-gray-600">
                     Error getting vote list
                 </div>
-                <div v-for="vote, index in votes" :key="vote.id"
-                    :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="onVoteItemClicked(vote.id)">
+                <div v-for="vote, index in votes" :key="vote.vote.id"
+                    :class="['mv-item', { selected: selectedVoteId === vote.vote.id }]" @click="onVoteItemClicked(vote.vote.id)">
                     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2">
                         <div class="flex flex-col">
                             <div class="flex flex-col md:flex-row gap-2">
                                 <h3 class="text-lg font-bold">{{ index + 1 }} |</h3>
                                 <div class="flex flex-col gap-1">
-                                    <h3 class="text-lg font-semibold whitespace-normal">{{ vote.title }}</h3>
-                                    <button @click.stop="onVoteSubjectsClicked(vote.id)"
+                                    <h3 class="text-lg font-semibold whitespace-normal">{{ vote.vote.title }}</h3>
+                                    <button @click.stop="onVoteSubjectsClicked(vote.vote.id)"
                                         class="mv-subject-count w-max self-start">
-                                        {{ vote.subjects.length }} subjects
+                                        {{ vote.vote.subjects.length }} subjects
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="flex flex-col md:items-end gap-1 text-right">
-                            <div class="text-xs text-gray-500">Created by: <span class="font-medium">{{ vote.creator
+                            <div class="text-xs text-gray-500">Created by: <span class="font-medium">{{ vote.user ? vote.user.email : '-'
                                     }}</span></div>
-                            <div class="text-sm text-gray-600">Total votes: {{ vote.totalCount }}</div>
-                            <div v-if="vote.maximumCount" class="text-sm text-gray-600">Maximum votes: {{
-                                vote.maximumCount }}</div>
-                            <div v-if="vote.expiredTime" class="text-sm text-gray-600">Close at: {{
-                                formatDateTime(vote.expiredTime) }}</div>
+                            <div class="text-sm text-gray-600">Total votes: {{ vote.vote.totalCount }}</div>
+                            <div v-if="vote.vote.maximumCount" class="text-sm text-gray-600">Maximum votes: {{
+                                vote.vote.maximumCount }}</div>
+                            <div v-if="vote.vote.expiredTime" class="text-sm text-gray-600">Close at: {{
+                                formatDateTime(vote.vote.expiredTime) }}</div>
                         </div>
                     </div>
 
-                    <div :class="['mv-subjects', { expanded: expandedSubjectsId === vote.id }]">
-                        <div v-for="subject in vote.subjects" :key="subject.id" class="mv-subject">
+                    <div :class="['mv-subjects', { expanded: expandedSubjectsId === vote.vote.id }]">
+                        <div v-for="subject in vote.vote.subjects" :key="subject.id" class="mv-subject">
                             <span>{{ subject.name }}</span>
                             <span class="text-gray-600">{{ subject.voteCount }} votes
-                                ({{ calculatePercentage(subject.voteCount, vote.totalCount) }}%)</span>
+                                ({{ calculatePercentage(subject.voteCount, vote.vote.totalCount) }}%)</span>
                         </div>
                     </div>
 
-                    <div :class="['mv-actions', { visible: selectedVoteId === vote.id }]">
+                    <div :class="['mv-actions', { visible: selectedVoteId === vote.vote.id }]">
                         <div class="flex gap-2">
-                            <button @click.stop="onEditClicked(vote)"
+                            <button @click.stop="onEditClicked(vote.vote)"
                                 class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
                                 Edit
                             </button>
-                            <button @click.stop="onDeleteClicked(vote)"
+                            <button @click.stop="onDeleteClicked(vote.vote)"
                                 class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600">
                                 Delete
                             </button>
@@ -138,6 +138,7 @@ import { spawnResultPopup } from './components/resultPopup'
 import { spawnComponent } from './components/componentSpawner'
 import VoteForm from './components/VoteForm.vue'
 import { createNewVote, getVotes, updateVote, deleteVote, getFilterOptions } from './vote'
+import { getUser } from './access'
 
 const VotePerPageCount = 10
 
@@ -177,6 +178,21 @@ async function refreshWithPageCount() {
     }
 }
 
+async function fetchVoteCreator(vote) {
+    if (vote.creatorId) {
+        return getUser(vote.creatorId)
+            .then(resolve => {
+                if (!resolve.result) {
+                    return null
+                }
+
+                return resolve.result
+            })
+    }
+
+    return null
+}
+
 async function fetchVotes(page = 0, count = VotePerPageCount) {
     isLoading.value = true
     try {
@@ -189,8 +205,17 @@ async function fetchVotes(page = 0, count = VotePerPageCount) {
         if (result.errorMessage) {
             return null
         }
+        
+        const mapped = result.result.map(v => {
+            const voteObj = { vote: v, user: ref(null) }
+            fetchVoteCreator(v)
+                .then(response => {
+                    voteObj.user.value = response
+                })
+            return voteObj
+        })
 
-        return result.result
+        return mapped
     } catch (error) {
         console.error('Failed to fetch votes:', error)
         spawnResultPopup({
@@ -429,12 +454,16 @@ async function onLoadMoreClicked() {
     const result = await fetchVotes(currentPage)
     if (result) {
         result.forEach((vote) => {
-            const existingIndex = votes.value.findIndex((v) => v.id === vote.id)
+            const existingIndex = votes.value.findIndex((v) => v.vote.id === vote.id)
             if (existingIndex !== -1) {
                 votes.value[existingIndex] = vote
                 return
             }
-            votes.value.push(vote)
+            const voteObj = { vote: vote, user: ref(null)}
+            fetchVoteCreator(vote)
+                .then(resolve => voteObj.user.value = resolve)
+
+            votes.value.push(voteObj)
         })
     }
 }

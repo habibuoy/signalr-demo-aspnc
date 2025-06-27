@@ -49,7 +49,8 @@ async function getVotes(page = 0, count = 10, sortBy, sortOrder, search ) {
                             subject.voteCount
                         )),
                         vote.maximumCount,
-                        vote.expiredTime
+                        vote.expiredTime,
+                        vote.creatorId
                     )
                     v.totalCount = vote.subjects.reduce((sum, subject) => sum + subject.voteCount, 0)
                     return v
@@ -194,12 +195,13 @@ async function deleteVote(id = "") {
 class Vote {
     totalCount = 0;
 
-    constructor(id, title, subjects, maxVotes, endTime) {
+    constructor(id, title, subjects, maxVotes, endTime, creatorId) {
         this.id = id
         this.title = title
         this.subjects = subjects
         this.maximumCount = maxVotes
-        this.expiredTime = endTime
+        this.expiredTime = endTime,
+        this.creatorId = creatorId
     }
 
     canVote() {

@@ -1,4 +1,4 @@
-export { login, register, isAuthenticated, canManageVote, User }
+export { login, register, isAuthenticated, canManageVote, User, getUser }
 
 import { httpFetch, HttpMethod, BaseUrl } from './utils'
 
@@ -8,9 +8,11 @@ const LoginUrl = BaseUrl + LoginPath
 const RegisterPath = "/register"
 const RegisterUrl = BaseUrl + RegisterPath
 
-
 const ManageVotesAccessPath = "/votes/can-manage"
 const ManageVotesAccessUrl = BaseUrl + ManageVotesAccessPath
+
+const UserPath = "/users"
+const UserUrl = BaseUrl + UserPath
 
 async function canManageVote() {
     const result = await httpFetch(ManageVotesAccessUrl)
@@ -84,12 +86,37 @@ function isAuthenticated() {
     return valid
 }
 
+async function getUser(id) {
+    return httpFetch(UserUrl + `/${id}`)
+        .then(response => {
+            const requestResult = {}
+            if (!response.isSuccess) {
+                requestResult.errorMessage = response.message
+            } else {
+                const user = response.result
+                requestResult.result = new User(
+                    user.id,
+                    user.email,
+                    user.firstName,
+                    user.lastName,
+                    user.createdTime
+                )
+            }
+
+            return requestResult
+        })
+        .catch(error => {
+            console.error(`Error happened while getting user ${id} info`, error)
+            return { errorMessage: "There was an error while getting user info" }
+        })
+}
+
 class User {
     constructor(id, email, firstName, lastName, createdTime) {
         this._id = id
         this.email = email
-        this.firstName
-        this.lastName
-        this.createdTime
+        this.firstName = firstName
+        this.lastName = lastName
+        this.createdTime = createdTime
     }
 }
