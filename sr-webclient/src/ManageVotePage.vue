@@ -14,42 +14,48 @@
                 </button>
             </div>
 
+            <div v-if="showVotes && filterOptions" class="flex justify-end mt-4 mb-2 relative z-5">
+                <button @click="onFilterClicked"
+                    class="bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded shadow hover:bg-gray-200 flex items-center gap-2">
+                    <span>Filter</span>
+                    <span :class="filterPanelExpanded ? '' : 'rotate-90'" class="transition-transform">▼</span>
+                </button>
+            </div>
+
             <transition name="fade">
-                <div v-if="showVotes && filterOptions" class="mv-filter-panel"
-                    :class="{ expanded: filterPanelExpanded }">
-                    <button @click="onFilterClicked"
-                        class="w-full text-left font-semibold py-2 px-2 bg-gray-100 rounded mb-2 flex items-center justify-between">
-                        Filter
-                        <span :class="filterPanelExpanded ? '' : 'rotate-90'" class="transition-transform">▼</span>
-                    </button>
-                    <div v-show="filterPanelExpanded"
-                        class="mv-filter-content flex flex-col md:flex-row gap-2 md:items-end">
-                        <div class="flex flex-col" v-show="filterOptions.sortBy">
-                            <label class="text-xs font-medium mb-1">Sort By</label>
-                            <select name="sort-by" v-model="filterOptions.sortBy.value"
-                                class="border rounded px-2 py-1">
-                                <option value="" disabled>Select sort by</option>
-                                <option v-for="item in filterOptions.sortBy.options" :key="item.name"
-                                    :value="item.name">{{ item.normalizedName }} </option>
-                            </select>
+                <div v-if="filterPanelExpanded && showVotes && filterOptions"
+                    class="fixed inset-10 flex items-start justify-center z-15"
+                    @click.self="onFilterClicked">
+                    <div class="mv-filter-overlay bg-white rounded-lg shadow-lg p-6 mt-24 w-full max-w-xl mx-auto relative"
+                        @click.stop>
+                        <div class="mv-filter-content flex flex-col md:flex-row gap-2 md:items-end">
+                            <div class="flex flex-col" v-show="filterOptions.sortBy">
+                                <label class="text-xs font-medium mb-1">Sort By</label>
+                                <select name="sort-by" v-model="filterOptions.sortBy.value"
+                                    class="border rounded px-2 py-1">
+                                    <option value="" disabled>Select sort by</option>
+                                    <option v-for="item in filterOptions.sortBy.options" :key="item.name"
+                                        :value="item.name">{{ item.normalizedName }} </option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col" v-show="filterOptions.sortOrder">
+                                <label class="text-xs font-medium mb-1">Sort Order</label>
+                                <select v-model="filterOptions.sortOrder.value" class="border rounded px-2 py-1">
+                                    <option value="" disabled>Select sort order</option>
+                                    <option v-for="item in filterOptions.sortOrder.options" :key="item.name"
+                                        :value="item.name">{{ item.normalizedName }}</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col flex-1" v-show="filterOptions.search">
+                                <label class="text-xs font-medium mb-1">Search</label>
+                                <input v-model="filterOptions.search.value" type="text"
+                                    class="border rounded px-2 py-1 w-full"
+                                    :placeholder="`Search vote by ${filterOptions.search.options.map(o => o.normalizedName).join(', ')}...`" />
+                            </div>
+                            <button @click="onApplyFilterClicked"
+                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2 md:mt-0">Apply
+                                Filter</button>
                         </div>
-                        <div class="flex flex-col" v-show="filterOptions.sortOrder">
-                            <label class="text-xs font-medium mb-1">Order</label>
-                            <select v-model="filterOptions.sortOrder.value" class="border rounded px-2 py-1">
-                                <option value="" disabled>Select sort order</option>
-                                <option v-for="item in filterOptions.sortOrder.options" :key="item.name"
-                                    :value="item.name">{{ item.normalizedName }}</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col flex-1" v-show="filterOptions.search">
-                            <label class="text-xs font-medium mb-1">Search</label>
-                            <input v-model="filterOptions.search.value" type="text"
-                                class="border rounded px-2 py-1 w-full"
-                                :placeholder="`Search vote by ${filterOptions.search.options.map(o => o.normalizedName).join(', ')}...`" />
-                        </div>
-                        <button @click="onApplyFilterClicked"
-                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2 md:mt-0">Apply
-                            Filter</button>
                     </div>
                 </div>
             </transition>
@@ -428,10 +434,8 @@ async function onLoadMoreClicked() {
                 votes.value[existingIndex] = vote
                 return
             }
-    
             votes.value.push(vote)
         })
     }
 }
-
 </script>

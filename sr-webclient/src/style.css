@@ -136,22 +136,17 @@
          transition-colors mt-2;
 }
 
-.mv-filter-panel {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  border-radius: 0.5rem;
-  background: transparent;
-  transition: max-height 0.3s;
+.mv-filter-overlay {
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18), 0 1.5px 4px 0 rgba(0,0,0,0.08);
+  border-radius: 1rem;
+  max-width: 75vw;
 }
 
-.mv-filter-content {
-  overflow: hidden;
-  transition: max-height 0.3s;
-  padding: 0.5rem 0;
-}
-
-.mv-filter-panel .mv-filter-content label {
-  color: #374151;
+@media (max-width: 768px) {
+  .mv-filter-overlay {
+    padding: 1.25rem;
+    margin-top: 5rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -170,12 +165,4 @@
   font-size: 0.85rem;
   color: #6b7280;
   margin-bottom: 0.25rem;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.2s;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
 }
