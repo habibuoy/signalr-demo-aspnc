@@ -10,10 +10,28 @@ public static class UserHandlers
     public static RouteGroupBuilder MapUsers(this RouteGroupBuilder routes)
     {
         routes.RequireAuthorization();
+        routes.MapGet("/{id}", GetUser);
         routes.MapGet("/roles", GetRoles);
         routes.MapGet("/vote-inputs", GetVoteInputs);
 
         return routes;
+    }
+
+    public static async Task<IResult> GetUser(string? id,
+        [FromServices] IUserService userService)
+    {
+        if (id == null)
+        {
+            return Results.BadRequest(ResponseObject.BadQuery());
+        }
+
+        var user = await userService.GetUserByIdAsync(id);
+        if (user == null)
+        {
+            return Results.NotFound(ResponseObject.NotFound());
+        }
+
+        return Results.Ok(ResponseObject.Success(user.ToResponse()));
     }
 
     public static async Task<IResult> GetRoles(HttpContext httpContext,
