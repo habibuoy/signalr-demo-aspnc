@@ -52,20 +52,24 @@
                                     class="border rounded px-2 py-1 w-full"
                                     :placeholder="`Search vote by ${filterOptions.search.options.map(o => o.normalizedName).join(', ')}...`" />
                             </div>
-                            <button @click="onApplyFilterClicked"
-                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2 md:mt-0">Apply
-                                Filter</button>
+                            <button @click="onApplyFilterClicked" :disabled="isLoading"
+                                class="text-white px-4 py-2 rounded mt-2 md:mt-0 md:min-h-10 md:min-w-28"
+                                :class="[isLoading ? 'cursor-not-allowed bg-blue-200' : 'bg-blue-500 hover:bg-blue-600']">
+                                <div v-if="isLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>
+                                <p v-else>Apply Filter</p> 
+                            </button>
                         </div>
                     </div>
                 </div>
             </transition>
 
             <div v-if="showVotes" class="mv-list">
-                <div v-if="votes.length === 0" class="text-center py-8 text-gray-600">
-                    No votes available
-                </div>
+                <div v-if="isLoading"></div>
                 <div v-else-if="votes === null || !votes.length" class="text-center py-8 text-gray-600">
                     Error getting vote list
+                </div>
+                <div v-else-if="votes.length === 0" class="text-center py-8 text-gray-600">
+                    No votes available
                 </div>
                 <div v-for="vote, index in votes" :key="vote.vote.id"
                     :class="['mv-item', { selected: selectedVoteId === vote.vote.id }]" @click="onVoteItemClicked(vote.vote.id)">
@@ -455,15 +459,13 @@ async function onLoadMoreClicked() {
     if (result) {
         result.forEach((vote) => {
             const existingIndex = votes.value.findIndex((v) => v.vote.id === vote.id)
+
             if (existingIndex !== -1) {
                 votes.value[existingIndex] = vote
                 return
             }
-            const voteObj = { vote: vote, user: ref(null)}
-            fetchVoteCreator(vote)
-                .then(resolve => voteObj.user.value = resolve)
 
-            votes.value.push(voteObj)
+            votes.value.push(vote)
         })
     }
 }
