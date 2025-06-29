@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>sr_server</RootNamespace>
+    <RootNamespace>Server</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
