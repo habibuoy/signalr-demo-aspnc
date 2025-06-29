@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using SignalRDemo.Server.Models;
+using SimpleVote.Server.Models;
 
-namespace SignalRDemo.Server.Datas;
+namespace SimpleVote.Server.Datas;
 
 public class ApplicationDbContext : DbContext
 {

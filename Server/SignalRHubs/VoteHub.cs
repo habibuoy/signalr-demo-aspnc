@@ -2,12 +2,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Utils;
-using SignalRDemo.Shared;
-using SignalRDemo.Shared.Models;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Utils;
+using SimpleVote.Shared;
+using SimpleVote.Shared.Models;
 
-namespace SignalRDemo.Server.SignalRHubs;
+namespace SimpleVote.Server.SignalRHubs;
 
 public class VoteHub : Hub<IVoteHubClient>
 {

@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using SignalRDemo.Server.Datas;
-using static SignalRDemo.Server.Configurations.AppConstants;
+using SimpleVote.Server.Datas;
+using static SimpleVote.Server.Configurations.AppConstants;
 
-namespace SignalRDemo.Server.Configurations;
+namespace SimpleVote.Server.Configurations;
 
 public static class AppConfigurations
 {

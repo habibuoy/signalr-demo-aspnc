@@ -1,4 +1,4 @@
-namespace SignalRDemo.ConsoleClient;
+namespace SimpleVote.ConsoleClient;
 
 public class UserInfo
 {

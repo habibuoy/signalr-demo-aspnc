@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace SignalRDemo.Server.Utils;
+namespace SimpleVote.Server.Utils;
 
 public static class LogHelper
 {

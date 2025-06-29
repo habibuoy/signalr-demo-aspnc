@@ -1,8 +1,8 @@
 using System.Threading.Channels;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Models;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class VoteNotification : IVoteNotificationReader, IVoteNotificationWriter
 {

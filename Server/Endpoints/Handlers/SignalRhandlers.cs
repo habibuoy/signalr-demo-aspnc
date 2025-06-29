@@ -1,6 +1,6 @@
-using SignalRDemo.Server.SignalRHubs;
+using SimpleVote.Server.SignalRHubs;
 
-namespace SignalRDemo.Server.Endpoints.Handlers;
+namespace SimpleVote.Server.Endpoints.Handlers;
 
 public static class SignalRHandlers
 {

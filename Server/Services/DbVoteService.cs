@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SignalRDemo.Server.Configurations;
-using SignalRDemo.Server.Datas;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Configurations;
+using SimpleVote.Server.Datas;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Models;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class DbVoteService : IVoteService, IVoteQueueService
 {

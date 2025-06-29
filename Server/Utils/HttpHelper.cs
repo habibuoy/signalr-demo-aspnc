@@ -1,8 +1,8 @@
-using SignalRDemo.Server.Endpoints;
-using SignalRDemo.Server.Services;
-using SignalRDemo.Server.Utils.Extensions;
+using SimpleVote.Server.Endpoints;
+using SimpleVote.Server.Services;
+using SimpleVote.Server.Utils.Extensions;
 
-namespace SignalRDemo.Server.Utils;
+namespace SimpleVote.Server.Utils;
 
 public static class HttpHelper
 {

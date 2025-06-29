@@ -1,5 +1,5 @@
-using SignalRDemo.Server.Configurations;
-using SignalRDemo.Server.Endpoints.Handlers;
+using SimpleVote.Server.Configurations;
+using SimpleVote.Server.Endpoints.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 

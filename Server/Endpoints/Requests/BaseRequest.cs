@@ -1,6 +1,6 @@
-using SignalRDemo.Server.Validations;
+using SimpleVote.Server.Validations;
 
-namespace SignalRDemo.Server.Endpoints.Requests;
+namespace SimpleVote.Server.Endpoints.Requests;
 
 public abstract record BaseRequest
 {

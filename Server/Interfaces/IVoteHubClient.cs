@@ -1,6 +1,6 @@
-using SignalRDemo.Shared;
+using SimpleVote.Shared;
 
-namespace SignalRDemo.Server.Interfaces;
+namespace SimpleVote.Server.Interfaces;
 
 public interface IVoteHubClient
 {

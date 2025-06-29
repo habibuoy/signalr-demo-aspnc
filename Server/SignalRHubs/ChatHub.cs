@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
-using SignalRDemo.Shared;
+using SimpleVote.Shared;
 
-namespace SignalRDemo.Server.SignalRHubs;
+namespace SimpleVote.Server.SignalRHubs;
 
 public class ChatHub : Hub
 {

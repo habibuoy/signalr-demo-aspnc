@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Utils;
+namespace SimpleVote.Server.Utils;
 
 public class ConcurrentHashSet<T>
 {

@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server;
+namespace SimpleVote.Server;
 
 /// <summary>
 /// Result to any operation

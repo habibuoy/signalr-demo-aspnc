@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Endpoints.Handlers;
-using static SignalRDemo.Server.Configurations.AppConstants;
+using SimpleVote.Server.Endpoints.Handlers;
+using static SimpleVote.Server.Configurations.AppConstants;
 
-namespace SignalRDemo.Server.Configurations;
+namespace SimpleVote.Server.Configurations;
 
 public static class SecurityConfigurations
 {

@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Utils.Extensions;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Utils.Extensions;
 
-namespace SignalRDemo.Server.Endpoints.Handlers;
+namespace SimpleVote.Server.Endpoints.Handlers;
 
 public static class UserHandlers
 {

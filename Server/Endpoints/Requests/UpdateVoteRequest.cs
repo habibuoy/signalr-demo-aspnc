@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.VoteValidators;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.VoteValidators;
 
-namespace SignalRDemo.Server.Endpoints.Requests;
+namespace SimpleVote.Server.Endpoints.Requests;
 
 public record UpdateVoteRequest(string Title, UpdateVoteRequest.VoteSubject[] Subjects,
     int? MaximumCount, int? Duration) : BaseRequest

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SignalRDemo.Shared;
+namespace SimpleVote.Shared;
 
 public static class FileHelper
 {

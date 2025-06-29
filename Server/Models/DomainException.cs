@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Models;
+namespace SimpleVote.Server.Models;
 
 public class DomainException : Exception
 {

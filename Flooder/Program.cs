@@ -5,11 +5,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
-using SignalRDemo.Flooder;
-using SignalRDemo.Shared;
-using static SignalRDemo.Shared.AppDefaults;
-using static SignalRDemo.Shared.HttpHelper;
-using static SignalRDemo.Shared.FileHelper;
+using SimpleVote.Flooder;
+using SimpleVote.Shared;
+using static SimpleVote.Shared.AppDefaults;
+using static SimpleVote.Shared.HttpHelper;
+using static SimpleVote.Shared.FileHelper;
 
 #region Variables
 var services = new ServiceCollection();

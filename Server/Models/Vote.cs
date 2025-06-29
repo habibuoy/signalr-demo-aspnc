@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.VoteValidators;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.VoteValidators;
 
-namespace SignalRDemo.Server.Models;
+namespace SimpleVote.Server.Models;
 
 public class Vote
 {

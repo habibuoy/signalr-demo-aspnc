@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using SignalRDemo.Server.Utils;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Utils;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class HubConnectionManager : IHubConnectionManager
 {

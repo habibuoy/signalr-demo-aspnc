@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using SignalRDemo.Server.Interfaces;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Interfaces;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class VoteQueueProcessorBackgroundService : BackgroundService
 {

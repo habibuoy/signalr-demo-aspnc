@@ -1,6 +1,6 @@
-using SignalRDemo.Server.Services.Errors;
+using SimpleVote.Server.Services.Errors;
 
-namespace SignalRDemo.Server.Utils.Extensions;
+namespace SimpleVote.Server.Utils.Extensions;
 
 public static class ServiceResultExtensions
 {

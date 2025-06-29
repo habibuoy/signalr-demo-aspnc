@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Endpoints;
+namespace SimpleVote.Server.Endpoints;
 
 public class ResponseObject
 {

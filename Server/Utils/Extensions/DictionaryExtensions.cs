@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Utils.Extensions;
+namespace SimpleVote.Server.Utils.Extensions;
 
 public static class DictionaryExtensions
 {

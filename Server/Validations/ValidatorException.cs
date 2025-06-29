@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Validations;
+namespace SimpleVote.Server.Validations;
 
 public class ValidatorException : Exception
 {

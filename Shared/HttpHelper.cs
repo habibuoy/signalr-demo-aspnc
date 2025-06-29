@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json.Nodes;
-using static SignalRDemo.Shared.AppDefaults;
+using static SimpleVote.Shared.AppDefaults;
 
-namespace SignalRDemo.Shared;
+namespace SimpleVote.Shared;
 
 public static class HttpHelper
 {

@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Configurations;
+namespace SimpleVote.Server.Configurations;
 
 public class QuerySortOrderOptions
 {

@@ -1,9 +1,9 @@
-using SignalRDemo.Server.Utils;
+using SimpleVote.Server.Utils;
 using System.Diagnostics.CodeAnalysis;
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.UserValidator;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.UserValidator;
 
-namespace SignalRDemo.Server.Models;
+namespace SimpleVote.Server.Models;
 
 public class User
 {

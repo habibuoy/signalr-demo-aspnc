@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.UserValidator;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.UserValidator;
 
-namespace SignalRDemo.Server.Endpoints.Requests;
+namespace SimpleVote.Server.Endpoints.Requests;
 
 public record CreateUserRequest(string Email, string Password, string? FirstName, string LastName) 
     : BaseRequest

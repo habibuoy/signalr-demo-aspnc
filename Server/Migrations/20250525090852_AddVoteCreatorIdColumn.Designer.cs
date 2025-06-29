@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SignalRDemo.Server.Datas;
+using SimpleVote.Server.Datas;
 
 #nullable disable
 
@@ -20,7 +20,7 @@ namespace sr_server.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.5");
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.User", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.User", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
@@ -44,7 +44,7 @@ namespace sr_server.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.Vote", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.Vote", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
@@ -72,7 +72,7 @@ namespace sr_server.Migrations
                     b.ToTable("Votes");
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubject", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.VoteSubject", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -93,7 +93,7 @@ namespace sr_server.Migrations
                     b.ToTable("VoteSubjects", (string)null);
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubjectInput", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.VoteSubjectInput", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -115,18 +115,18 @@ namespace sr_server.Migrations
                     b.ToTable("VoteInputs", (string)null);
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.Vote", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.Vote", b =>
                 {
-                    b.HasOne("SignalRDemo.Server.Models.User", "User")
+                    b.HasOne("SimpleVote.Server.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("CreatorId");
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubject", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.VoteSubject", b =>
                 {
-                    b.HasOne("SignalRDemo.Server.Models.Vote", "Vote")
+                    b.HasOne("SimpleVote.Server.Models.Vote", "Vote")
                         .WithMany("Subjects")
                         .HasForeignKey("VoteId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -135,9 +135,9 @@ namespace sr_server.Migrations
                     b.Navigation("Vote");
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubjectInput", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.VoteSubjectInput", b =>
                 {
-                    b.HasOne("SignalRDemo.Server.Models.VoteSubject", "VoteSubject")
+                    b.HasOne("SimpleVote.Server.Models.VoteSubject", "VoteSubject")
                         .WithMany("Voters")
                         .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -146,12 +146,12 @@ namespace sr_server.Migrations
                     b.Navigation("VoteSubject");
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.Vote", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.Vote", b =>
                 {
                     b.Navigation("Subjects");
                 });
 
-            modelBuilder.Entity("SignalRDemo.Server.Models.VoteSubject", b =>
+            modelBuilder.Entity("SimpleVote.Server.Models.VoteSubject", b =>
                 {
                     b.Navigation("Voters");
                 });

@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Services;
+using SimpleVote.Server.Models;
+using SimpleVote.Server.Services;
 
-namespace SignalRDemo.Server.Interfaces;
+namespace SimpleVote.Server.Interfaces;
 
 public interface IVoteQueueService
 {

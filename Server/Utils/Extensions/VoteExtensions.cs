@@ -1,8 +1,8 @@
-using SignalRDemo.Server.Endpoints.Responses;
-using SignalRDemo.Server.Models;
-using SignalRDemo.Shared;
+using SimpleVote.Server.Endpoints.Responses;
+using SimpleVote.Server.Models;
+using SimpleVote.Shared;
 
-namespace SignalRDemo.Server.Utils.Extensions;
+namespace SimpleVote.Server.Utils.Extensions;
 
 public static class VoteExtensions
 {

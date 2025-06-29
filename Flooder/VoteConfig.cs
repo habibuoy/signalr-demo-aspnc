@@ -1,4 +1,4 @@
-namespace SignalRDemo.Flooder;
+namespace SimpleVote.Flooder;
 
 public class VoteConfig
 {

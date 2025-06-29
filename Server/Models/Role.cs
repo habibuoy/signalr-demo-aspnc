@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.RoleValidators;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.RoleValidators;
 
-namespace SignalRDemo.Server.Models;
+namespace SimpleVote.Server.Models;
 
 public class Role
 {

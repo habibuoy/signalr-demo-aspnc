@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public enum GenericServiceErrorCode
 {

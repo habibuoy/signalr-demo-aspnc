@@ -1,6 +1,6 @@
-using SignalRDemo.Server.Utils.Extensions;
+using SimpleVote.Server.Utils.Extensions;
 
-namespace SignalRDemo.Server.Models;
+namespace SimpleVote.Server.Models;
 
 public class DomainValidationException : DomainException
 {

@@ -1,12 +1,12 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
-using SignalRDemo.Server.Datas;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Utils;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Datas;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Models;
+using SimpleVote.Server.Utils;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class UserService : IUserService
 {

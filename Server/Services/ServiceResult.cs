@@ -1,6 +1,6 @@
-using SignalRDemo.Server.Services.Errors;
+using SimpleVote.Server.Services.Errors;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class ServiceResult<T> : Result<T, ServiceError>
 {

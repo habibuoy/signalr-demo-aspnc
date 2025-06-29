@@ -1,4 +1,4 @@
-namespace SignalRDemo.Server;
+namespace SimpleVote.Server;
 
 public interface IHubConnectionManager : IHubConnectionReader
 {

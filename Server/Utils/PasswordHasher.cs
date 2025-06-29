@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SignalRDemo.Server.Utils;
+namespace SimpleVote.Server.Utils;
 
 public static class PasswordHasher
 {

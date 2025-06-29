@@ -1,6 +1,6 @@
-using SignalRDemo.Server.Models;
+using SimpleVote.Server.Models;
 
-namespace SignalRDemo.Server.Interfaces;
+namespace SimpleVote.Server.Interfaces;
 
 public interface IRoleService
 {

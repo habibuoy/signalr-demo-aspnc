@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using SignalRDemo.ConsoleClient;
-using static SignalRDemo.Shared.HttpHelper;
-using static SignalRDemo.Shared.FileHelper;
+using SimpleVote.ConsoleClient;
+using static SimpleVote.Shared.HttpHelper;
+using static SimpleVote.Shared.FileHelper;
 
 const string Endpoint = "https://localhost:7000/watchvote";
 const string ClientConfigFilePath = "./client-config.json";

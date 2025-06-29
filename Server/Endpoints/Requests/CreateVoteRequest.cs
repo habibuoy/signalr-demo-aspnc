@@ -1,8 +1,8 @@
 using System.Text.Json;
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.VoteValidators;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.VoteValidators;
 
-namespace SignalRDemo.Server.Endpoints.Requests;
+namespace SimpleVote.Server.Endpoints.Requests;
 
 public record CreateVoteRequest(string Title, string[] Subjects, int? Duration, int? MaximumCount)
     : BaseRequest

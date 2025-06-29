@@ -2,11 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using SignalRDemo.Shared;
-using SignalRDemo.Shared.Models;
-using static SignalRDemo.Shared.HttpHelper;
+using SimpleVote.Shared;
+using SimpleVote.Shared.Models;
+using static SimpleVote.Shared.HttpHelper;
 
-namespace SignalRDemo.ConsoleClient;
+namespace SimpleVote.ConsoleClient;
 
 public class VoteClient
 {

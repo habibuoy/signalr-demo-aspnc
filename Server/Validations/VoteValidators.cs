@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Models;
-using static SignalRDemo.Server.Validations.Validators;
+using SimpleVote.Server.Models;
+using static SimpleVote.Server.Validations.Validators;
 
-namespace SignalRDemo.Server.Validations;
+namespace SimpleVote.Server.Validations;
 
 public static class VoteValidators
 {

@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using SignalRDemo.Server.Datas;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Datas;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Models;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class RoleService : IRoleService
 {

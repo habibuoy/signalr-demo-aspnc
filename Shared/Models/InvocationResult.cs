@@ -1,4 +1,4 @@
-namespace SignalRDemo.Shared.Models;
+namespace SimpleVote.Shared.Models;
 
 public class InvocationResult
 {

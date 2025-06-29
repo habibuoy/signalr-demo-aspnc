@@ -1,8 +1,8 @@
-using SignalRDemo.Server.Models;
+using SimpleVote.Server.Models;
 using Microsoft.EntityFrameworkCore;
-using SignalRDemo.Server.Services;
+using SimpleVote.Server.Services;
 
-namespace SignalRDemo.Server.Interfaces;
+namespace SimpleVote.Server.Interfaces;
 
 public interface IVoteService
 {

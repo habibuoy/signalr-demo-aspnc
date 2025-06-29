@@ -1,10 +1,10 @@
 using System.Linq.Expressions;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Services;
-using static SignalRDemo.Server.Configurations.AppConstants;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Models;
+using SimpleVote.Server.Services;
+using static SimpleVote.Server.Configurations.AppConstants;
 
-namespace SignalRDemo.Server.Configurations;
+namespace SimpleVote.Server.Configurations;
 
 public static class DomainConfigurations
 {

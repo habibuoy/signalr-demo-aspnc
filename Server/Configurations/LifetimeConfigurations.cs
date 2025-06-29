@@ -1,6 +1,6 @@
-using SignalRDemo.Server.Interfaces;
+using SimpleVote.Server.Interfaces;
 
-namespace SignalRDemo.Server.Configurations;
+namespace SimpleVote.Server.Configurations;
 
 public static class LifetimeConfigurations
 {

@@ -2,14 +2,14 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using SignalRDemo.Server.Endpoints.Requests;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Models;
-using SignalRDemo.Server.Utils.Extensions;
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Endpoints.Requests;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Models;
+using SimpleVote.Server.Utils.Extensions;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Endpoints.Handlers;
+namespace SimpleVote.Server.Endpoints.Handlers;
 
 public static class RootHandlers
 {

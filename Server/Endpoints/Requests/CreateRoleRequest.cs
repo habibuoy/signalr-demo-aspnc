@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Validations;
-using static SignalRDemo.Server.Validations.RoleValidators;
+using SimpleVote.Server.Validations;
+using static SimpleVote.Server.Validations.RoleValidators;
 
-namespace SignalRDemo.Server.Endpoints.Requests;
+namespace SimpleVote.Server.Endpoints.Requests;
 
 public record CreateRoleRequest(string Name, string? Description) : BaseRequest
 {

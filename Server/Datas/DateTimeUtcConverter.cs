@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace SignalRDemo.Server.Datas;
+namespace SimpleVote.Server.Datas;
 
 public class DateTimeUtcConverter : ValueConverter<DateTime, DateTime>
 {

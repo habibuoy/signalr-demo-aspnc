@@ -1,7 +1,7 @@
-using static SignalRDemo.Server.Validations.Validators;
-using static SignalRDemo.Server.Configurations.AppConstants;
+using static SimpleVote.Server.Validations.Validators;
+using static SimpleVote.Server.Configurations.AppConstants;
 
-namespace SignalRDemo.Server.Validations;
+namespace SimpleVote.Server.Validations;
 
 public static class RoleValidators
 {

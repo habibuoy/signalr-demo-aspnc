@@ -1,4 +1,4 @@
-namespace SignalRDemo.Shared;
+namespace SimpleVote.Shared;
 
 public class VoteCreatedProperties
 {

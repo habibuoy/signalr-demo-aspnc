@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
-using SignalRDemo.Server.Models;
+using SimpleVote.Server.Models;
 
-namespace SignalRDemo.Server.Configurations;
+namespace SimpleVote.Server.Configurations;
 
 public class VoteQueryFilterOptions
 {

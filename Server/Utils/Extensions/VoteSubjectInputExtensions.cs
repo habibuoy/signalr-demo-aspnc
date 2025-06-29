@@ -1,7 +1,7 @@
-using SignalRDemo.Server.Endpoints.Responses;
-using SignalRDemo.Server.Models;
+using SimpleVote.Server.Endpoints.Responses;
+using SimpleVote.Server.Models;
 
-namespace SignalRDemo.Server.Utils.Extensions;
+namespace SimpleVote.Server.Utils.Extensions;
 
 public static class VoteSubjectInputExtensions
 {

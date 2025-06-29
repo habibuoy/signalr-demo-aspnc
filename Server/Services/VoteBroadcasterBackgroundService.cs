@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
-using SignalRDemo.Server.Interfaces;
-using SignalRDemo.Server.Utils.Extensions;
-using SignalRDemo.Server.SignalRHubs;
-using static SignalRDemo.Server.Utils.LogHelper;
+using SimpleVote.Server.Interfaces;
+using SimpleVote.Server.Utils.Extensions;
+using SimpleVote.Server.SignalRHubs;
+using static SimpleVote.Server.Utils.LogHelper;
 
-namespace SignalRDemo.Server.Services;
+namespace SimpleVote.Server.Services;
 
 public class VoteBroadcasterBackgroundService : BackgroundService
 {
