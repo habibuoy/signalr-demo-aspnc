@@ -55,3 +55,18 @@ Microsoft .NET Web Api SDK
 3. After logging in with the new user, you will be on the main vote page, where you can view a list of votes. If the list is empty, create votes by accessing the manage-votes page in the Creator account.
 4. Notice that every time you create a new vote, a new vote item will be added to the vote list automatically in the normal user account. This is where SignalR functions.
 5. You can click one of the vote items to view the details of the vote, while also subscribing to the vote, which will make your web client receive the real-time update of that vote item. You can open the web client from another browser and log in using another account, then input a vote while observing the vote item in the other web client. Or you can just update a vote's detail, e.g, its title from the manage-votes page and observe the changing vote item from another account.
+6. The console client is basically just like the web client, only it prints the text-only vote notifications on the console.
+
+### Simulate real-time voting
+Simulate a real-time voting by sending concurrent vote inputs from multiple users at the same time.
+
+1. Ensure the server is running.
+2. Run the Flooder:
+    1. Go to the server project `cd .\Flooder\`.
+    2. Run the server using command `dotnet run` in your terminal.
+    3. Follow the instructions in the console.
+    4. Choose the input vote endpoint type: Normal or Queue.
+        1. Normal: Handle all concurrent vote inputs at the same time and implement a retry mechanism in case of concurrency error. Using this vote type will very likely result in some of the vote inputs not being processed properly, even after the retry mechanism. For example, if you send 10000 concurrent vote inputs, the successful vote inputs will likely be in around 8000 to 9500+ inputs, with very little chance that all 10000 inputs are processed.
+        2. Queue: Queue all vote inputs, and have the vote queue processor process the vote inputs in the background, ensuring no concurrency error. You send 10000 concurrent vote inputs, all those 10000 inputs will be processed as expected
+    5. Let the flooder do its job and wait until it finishes.
+    6. Repeat again if you want.
