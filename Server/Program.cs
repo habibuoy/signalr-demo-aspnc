@@ -20,4 +20,6 @@ app.MapGroup("/users").MapUsers();
 app.MapGroup("/roles").MapRoles();
 app.MapGroup("/votes").MapVotes();
 
+await app.ConfigureUsers();
+
 app.Run();
