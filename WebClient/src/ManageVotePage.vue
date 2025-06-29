@@ -71,15 +71,15 @@
                 <div v-else-if="votes.length === 0" class="text-center py-8 text-gray-600">
                     No votes available
                 </div>
-                <div v-for="vote, index in votes" :key="vote.vote.id"
-                    :class="['mv-item', { selected: selectedVoteId === vote.vote.id }]" @click="onVoteItemClicked(vote.vote.id)">
+                <div v-for="vote, index in votes" :key="vote.id"
+                    :class="['mv-item', { selected: selectedVoteId === vote.id }]" @click="onVoteItemClicked(vote.id)">
                     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-2">
                         <div class="flex flex-col">
                             <div class="flex flex-col md:flex-row gap-2">
                                 <h3 class="text-lg font-bold">{{ index + 1 }} |</h3>
                                 <div class="flex flex-col gap-1">
                                     <h3 class="text-lg font-semibold whitespace-normal">{{ vote.vote.title }}</h3>
-                                    <button @click.stop="onVoteSubjectsClicked(vote.vote.id)"
+                                    <button @click.stop="onVoteSubjectsClicked(vote.id)"
                                         class="mv-subject-count w-max self-start">
                                         {{ vote.vote.subjects.length }} subjects
                                     </button>
@@ -211,7 +211,7 @@ async function fetchVotes(page = 0, count = VotePerPageCount) {
         }
         
         const mapped = result.result.map(v => {
-            const voteObj = { vote: v, user: ref(null) }
+            const voteObj = { id: v.id, vote: v, user: ref(null) }
             fetchVoteCreator(v)
                 .then(response => {
                     voteObj.user.value = response
@@ -371,10 +371,15 @@ async function proceedEditVote(data) {
         if (voteForm && voteForm.destroy) {
             voteForm.destroy()
         }
-
+        
         const updatedVoteIndex = votes.value.findIndex(v => v.id === result.result.id)
         if (updatedVoteIndex !== -1) {
-            votes.value[updatedVoteIndex] = result.result
+            const updateVoteObj = { id: result.result.id, vote: result.result, user: ref(null) }
+            votes.value[updatedVoteIndex] = updateVoteObj
+            fetchVoteCreator(result.result)
+                .then(response => {
+                    updateVoteObj.user.value = response
+                })
         }
     } catch (error) {
         console.error(`Error happened while deleting vote ${data.voteId}`, error)

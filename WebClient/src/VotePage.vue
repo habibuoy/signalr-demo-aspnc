@@ -238,8 +238,8 @@ function onVoteCreated(v) {
 
 function onVoteUpdated(vote) {
     const existingVote = votes.value.find(v => v.id === vote.id)
-    // console.log(`vote updated: ${vote.title}`)
     if (existingVote) {
+        existingVote.title = vote.title
         existingVote.subjects = vote.subjects.map(subject => new VoteSubject(
             subject.id,
             subject.name,
