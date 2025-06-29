@@ -317,7 +317,8 @@ public static class VoteHandlers
     public static async Task<IResult> Update(string? id, UpdateVoteRequest? request,
         HttpContext httpContext,
         [FromServices] IVoteService voteService,
-        [FromServices] ILoggerFactory loggerFactory)
+        [FromServices] ILoggerFactory loggerFactory,
+        [FromServices] IVoteNotificationWriter notificationWriter)
     {
         if (id == null)
         {
@@ -389,6 +390,17 @@ public static class VoteHandlers
                 ex);
             return Results.Conflict(ResponseObject.Create("Failed to update vote due to the vote was being " +
                 "updated by another user. Please try again."));
+        }
+
+        try
+        {
+            await notificationWriter.WriteUpdateAsync(updatedVote);
+        }
+        catch (Exception ex)
+        {
+            LogError(logger, "Unexpected error happened while writing updated vote notification of " +
+                $"vote {updatedVote.Title} ({updatedVote.Id})",
+                ex);
         }
 
         return Results.Ok(ResponseObject.Success(updatedVote.ToResponse()));
