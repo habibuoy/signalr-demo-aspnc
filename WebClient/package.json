@@ -1,5 +1,5 @@
 {
-  "name": "sr-webclient",
+  "name": "webclient",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",
