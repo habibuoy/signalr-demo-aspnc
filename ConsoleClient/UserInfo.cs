@@ -1,4 +1,4 @@
-namespace SignalRDemo.Client;
+namespace SignalRDemo.ConsoleClient;
 
 public class UserInfo
 {

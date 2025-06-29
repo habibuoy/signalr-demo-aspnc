@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using SignalRDemo.Client;
+using SignalRDemo.ConsoleClient;
 using static SignalRDemo.Shared.HttpHelper;
 using static SignalRDemo.Shared.FileHelper;
 

@@ -6,7 +6,7 @@ using SignalRDemo.Shared;
 using SignalRDemo.Shared.Models;
 using static SignalRDemo.Shared.HttpHelper;
 
-namespace SignalRDemo.Client;
+namespace SignalRDemo.ConsoleClient;
 
 public class VoteClient
 {
