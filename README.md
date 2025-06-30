@@ -3,6 +3,15 @@
 This project is meant as a simple demonstration of ASP.NET Core's SignalR, where clients get notified when new votes are created and subscribed votes are updated (consider it as watching a vote in real time).  
 For learning purposes, the backend and frontend (web client) projects are separated.
 
+## Features
+- CRUD Users (accessible through API endpoints only)
+- CRUD Roles (accessible through API endpoints only)
+- CRUD Votes (accessible through API endpoints and web client)
+- Vote filtering (in the manage vote page)
+- Basic User authentication using email, password, and cookies
+- Role-based authorization
+- Request validations
+
 ## Packages used
 All .NET projects here are targeting framework .NET 9.0
 
