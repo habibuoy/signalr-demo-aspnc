@@ -109,7 +109,7 @@ public static class VoteHandlers
         return Results.Ok(ResponseObject.Success(voteInputs.Select(vi => vi.ToResponse())));
     }
 
-    public static async Task<IResult> Create(CreateVoteRequest? request,
+    public static async Task<IResult> Create([FromBody] CreateVoteRequest request,
         HttpContext httpContext,
         [FromServices] IVoteService voteService,
         [FromServices] IUserService userService,
@@ -314,7 +314,7 @@ public static class VoteHandlers
         return Results.Ok(ResponseObject.Success(result.Value.ToResponse()));
     }
 
-    public static async Task<IResult> Update(string? id, UpdateVoteRequest? request,
+    public static async Task<IResult> Update(string? id, UpdateVoteRequest request,
         HttpContext httpContext,
         [FromServices] IVoteService voteService,
         [FromServices] ILoggerFactory loggerFactory,

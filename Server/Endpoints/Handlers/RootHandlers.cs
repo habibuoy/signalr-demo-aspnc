@@ -13,12 +13,27 @@ namespace SimpleVote.Server.Endpoints.Handlers;
 
 public static class RootHandlers
 {
+    public static WebApplication MapAppEndpoints(this WebApplication app)
+    {
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+            
+            app.UseSwaggerUI(options =>
+            {
+                options.SwaggerEndpoint("/openapi/spec-v1.json", "spec-v1");
+            });
+        }
+
+        return app;
+    }
+
     public static RouteGroupBuilder MapRoots(this RouteGroupBuilder routes)
     {
         routes.MapPost("/register", Register);
         routes.MapPost("/login", Login);
         routes.MapGet("/logout", Logout).RequireAuthorization();
-        routes.MapGet("/accessDenied", AccessDenied);
+        routes.MapGet("/accessDenied", AccessDenied).ExcludeFromDescription();
         return routes;
     }
 

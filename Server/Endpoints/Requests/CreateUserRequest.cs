@@ -3,7 +3,7 @@ using static SimpleVote.Server.Validations.UserValidator;
 
 namespace SimpleVote.Server.Endpoints.Requests;
 
-public record CreateUserRequest(string Email, string Password, string? FirstName, string LastName) 
+public record CreateUserRequest(string Email, string Password, string? FirstName, string? LastName) 
     : BaseRequest
 {
     public override FieldValidationResult Validate(object? reference = null)

@@ -12,7 +12,7 @@ public static class AppConfigurations
     {
         // Add services to the container.
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-        services.AddOpenApi();
+        services.AddOpenApi("spec-v1");
         services.AddSignalR();
         services.Configure<JsonOptions>(options =>
         {

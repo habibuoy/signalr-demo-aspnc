@@ -14,6 +14,8 @@ var app = builder.Build();
 app.Lifetime.ConfigureLifetime(app.Services);
 app.UseMiddlewares();
 
+app.MapAppEndpoints();
+
 app.MapSignalRs();
 app.MapGroup("/").MapRoots();
 app.MapGroup("/users").MapUsers();

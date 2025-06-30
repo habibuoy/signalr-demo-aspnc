@@ -94,7 +94,7 @@ public static class RoleHandlers
         return Results.Ok(ResponseObject.Success(userRoles.Select(ur => ur.ToRoleResponse())));
     }
 
-    public static async Task<IResult> Create(CreateRoleRequest? request,
+    public static async Task<IResult> Create(CreateRoleRequest request,
         HttpContext httpContext,
         [FromServices] IRoleService roleService,
         [FromServices] ILoggerFactory loggerFactory)
@@ -154,7 +154,7 @@ public static class RoleHandlers
         return Results.Ok(ResponseObject.Success(role.ToResponse()));
     }
 
-    public static async Task<IResult> Update(string? role, UpdateRoleRequest? request,
+    public static async Task<IResult> Update(string? role, UpdateRoleRequest request,
         HttpContext httpContext,
         [FromServices] IRoleService roleService,
         [FromServices] ILoggerFactory loggerFactory)
