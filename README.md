@@ -130,7 +130,7 @@ With the above in mind, here are the endpoints provided by the Server.
 | /{id}                 | PUT        | 200, 400, 404, 500      | Cookies, admin Role or voteadministrator Role | Query param id, JSON body [UpdateVoteRequest](#update-vote-request) |           [VoteResponse](#vote-response)          |
 | /{id}                 | DELETE     | 200, 400, 404, 500      | Cookies, admin Role or voteadministrator Role |                            Query param id                           |                        null                       |
 
-For complete lists, you can access the `/openapi/spec-v1.json` endpoint
+For complete lists, you can access the `/openapi/spec-v1.json` endpoint, view the [API spec json file](https://github.com/habibuoy/simple-vote-aspnc/blob/58ecbf2239f45a99e95edab33245af3d9baaab8c/Server/spec-v1.json), or access the swagger page at `/swagger` to view the API endpoints with a GUI.
 
 ### Validation Errors
 ```
